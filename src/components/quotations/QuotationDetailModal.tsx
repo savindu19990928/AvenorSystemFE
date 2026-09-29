@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, ArrowRightIcon } from 'lucide-react';
+import { CheckIcon, ArrowRightIcon, DownloadIcon, PrinterIcon, FileDownIcon } from 'lucide-react';
 import type { Order, Quotation } from '../../types/api';
+import type { QuotationLayout } from '../../types/documents';
+import { useDocumentExport } from '../../hooks/useDocumentExport';
+import { DocumentRenderStage } from '../documents/DocumentRenderStage';
+import { QuotationLayoutPicker } from './QuotationLayoutPicker';
 import { api } from '../../utils/api';
 import { useApi } from '../../hooks/useApi';
 import { useAction } from '../../hooks/useAction';
@@ -34,9 +38,18 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged }: Quotat
   const [deliveryDate, setDeliveryDate] = useState(todayISO(21));
   const [address, setAddress] = useState('');
   const [deposit, setDeposit] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [layout, setLayout] = useState<QuotationLayout>(() => localStorage.getItem(LAYOUT_KEY) === 'template' ? 'template' : 'full');
+  const { exportQuotation, busy, stageProps } = useDocumentExport();
+
+  const chooseLayout = (next: QuotationLayout) => {
+    setLayout(next);
+    localStorage.setItem(LAYOUT_KEY, next);
+  };
 
   useEffect(() => {
     setConverting(false);
+    setExporting(false);
   }, [quotationId]);
 
   useEffect(() => {
@@ -70,45 +83,63 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged }: Quotat
   };
 
   return (
+    <>
     <Modal
-      open={quotationId !== null}
-      onClose={onClose}
-      size="lg"
-      title={data?.quotation_number ?? 'Quotation'}
-      description={data ? `${data.customer_company || data.customer_name} · valid until ${formatDate(data.validity_date)}` : undefined}
-      footer={
-      data &&
-      canManage &&
-      <>
-            {(data.status === 'DRAFT' || data.status === 'SENT') &&
-        <Button variant="primary" icon={CheckIcon} loading={pending} onClick={approve}>
+        open={quotationId !== null}
+        onClose={onClose}
+        size="lg"
+        title={data?.quotation_number ?? 'Quotation'}
+        description={data ? `${data.customer_company || data.customer_name} · valid until ${formatDate(data.validity_date)}` : undefined}
+        footer={
+        data && (
+        exporting ?
+        <>
+            <Button onClick={() => setExporting(false)} disabled={!!busy}>Back</Button>
+            <Button icon={PrinterIcon} loading={busy?.action === 'print'} disabled={!!busy} onClick={() => exportQuotation(data, layout, 'print')}>
+              Print
+            </Button>
+            <Button variant="primary" icon={DownloadIcon} loading={busy?.action === 'download'} disabled={!!busy} onClick={() => exportQuotation(data, layout, 'download')}>
+              Download PDF
+            </Button>
+          </> :
+
+        <>
+            {!converting &&
+          <Button icon={FileDownIcon} className="mr-auto" onClick={() => setExporting(true)}>
+                Download / Print
+              </Button>
+          }
+            {canManage && (data.status === 'DRAFT' || data.status === 'SENT') && !converting &&
+          <Button variant="primary" icon={CheckIcon} loading={pending} onClick={approve}>
                 Mark approved by customer
               </Button>
-        }
-            {data.status === 'APPROVED' && !converting &&
-        <Button variant="primary" icon={ArrowRightIcon} onClick={() => setConverting(true)}>
+          }
+            {canManage && data.status === 'APPROVED' && !converting &&
+          <Button variant="primary" icon={ArrowRightIcon} onClick={() => setConverting(true)}>
                 Convert to order
               </Button>
-        }
+          }
             {converting &&
-        <>
+          <>
                 <Button onClick={() => setConverting(false)}>Back</Button>
                 <Button variant="primary" type="submit" form="convert-form" loading={pending} disabled={!address.trim()}>
                   Create order
                 </Button>
               </>
-        }
-          </>
+          }
+          </>)
 
-      }>
-      
+        }>
+        
       {loading && !data ?
-      <StateMessage kind="loading" /> :
-      error ?
-      <StateMessage kind="error" message={error} onRetry={reload} /> :
-      data ?
-      converting ?
-      <form id="convert-form" onSubmit={convert} className="space-y-4">
+        <StateMessage kind="loading" /> :
+        error ?
+        <StateMessage kind="error" message={error} onRetry={reload} /> :
+        data ?
+        exporting ?
+        <QuotationLayoutPicker value={layout} onChange={chooseLayout} /> :
+        converting ?
+        <form id="convert-form" onSubmit={convert} className="space-y-4">
             <p className="text-sm text-muted">
               All line items, brand and pricing carry over — nothing needs re-entering. Blank garments are reserved automatically.
             </p>
@@ -123,7 +154,7 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged }: Quotat
             </Field>
           </form> :
 
-      <div className="space-y-5">
+        <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={data.status} />
               <BrandTag name={data.brand_name} />
@@ -142,14 +173,14 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged }: Quotat
                 </thead>
                 <tbody>
                   {(data.items ?? []).map((i, idx) =>
-              <tr key={i.id ?? idx} className="border-t border-line">
+                <tr key={i.id ?? idx} className="border-t border-line">
                       <td className="px-3 py-2 font-medium">{i.product_name}</td>
                       <td className="px-3 py-2 text-muted">{[i.colour, i.size, i.fabric_gsm, i.printing_method].filter(Boolean).join(' · ')}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{i.quantity}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{formatMoney(i.unit_price)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{formatMoney(i.total_price)}</td>
                     </tr>
-              )}
+                )}
                 </tbody>
               </table>
             </div>
@@ -164,7 +195,11 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged }: Quotat
             {data.notes && <p className="rounded-lg bg-canvas px-3 py-2 text-sm text-muted">{data.notes}</p>}
           </div> :
 
-      null}
-    </Modal>);
+        null}
+    </Modal>
+    <DocumentRenderStage {...stageProps} />
+    </>);
 
 }
+
+const LAYOUT_KEY = 'avenor.quotationLayout';

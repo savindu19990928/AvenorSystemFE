@@ -75,7 +75,7 @@ export function Login() {
           <Button type="submit" variant="primary" loading={pending} className="mt-6 w-full">
             Sign in
           </Button>
-          <p className="mt-6 text-center text-xs text-faint">Connected to {API_BASE_URL.replace('https://', '')}</p>
+          <p className="mt-6 text-center text-xs text-faint"></p>
         </form>
       </section>
     </div>);

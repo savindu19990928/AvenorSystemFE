@@ -33,6 +33,8 @@ export interface Brand {
   code: string;
   positioning: string;
   description?: string;
+  /** Brand logo file path or URL. When missing, documents fall back to the brand's first letter. */
+  logo?: string | null;
   is_active: boolean;
 }
 

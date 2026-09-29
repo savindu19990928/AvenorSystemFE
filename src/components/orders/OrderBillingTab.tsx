@@ -12,6 +12,9 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PaymentFormModal } from '../workflow/PaymentFormModal';
 import { GenerateInvoiceModal } from '../workflow/GenerateInvoiceModal';
 import { ExpenseFormModal } from '../workflow/ExpenseFormModal';
+import { InvoiceExportButtons } from '../documents/InvoiceExportButtons';
+import { DocumentRenderStage } from '../documents/DocumentRenderStage';
+import { useDocumentExport } from '../../hooks/useDocumentExport';
 
 export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChanged: () => void;}) {
   const { hasRole } = useAuth();
@@ -21,6 +24,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
   const [expensing, setExpensing] = useState(false);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
   const { run, pending } = useAction();
+  const { exportInvoice, busy, stageProps } = useDocumentExport();
   const invoiceList = useApi(
     () => api.list<Invoice>('/api/billing/invoices/', { order: order.id }).then((l) => l.filter((i) => i.order === order.id || i.order_code === order.order_id)),
     [order.id]
@@ -83,6 +87,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
                 <StatusBadge status={i.status} />
                 <span className="text-muted">{i.due_date ? `Due ${formatDate(i.due_date)}` : ''}</span>
                 <span className="ml-auto tabular-nums">{formatMoney(i.total_amount)} <span className="text-muted">· bal {formatMoney(i.balance_amount)}</span></span>
+                <InvoiceExportButtons invoice={{ ...i, order: i.order ?? order.id }} busy={busy} onExport={exportInvoice} />
                 {canAct && i.id && i.status !== 'CANCELLED' &&
             <Button size="sm" variant="ghost" onClick={() => setCancelling(i)}>Cancel</Button>
             }
@@ -138,6 +143,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
         reasonLabel="Reason"
         reasonRequired />
       
+      <DocumentRenderStage {...stageProps} />
     </div>);
 
 }

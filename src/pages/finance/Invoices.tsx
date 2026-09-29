@@ -14,6 +14,9 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { BrandTag } from '../../components/ui/BrandTag';
 import { Tabs } from '../../components/ui/Tabs';
 import { GenerateInvoiceModal } from '../../components/workflow/GenerateInvoiceModal';
+import { InvoiceExportButtons } from '../../components/documents/InvoiceExportButtons';
+import { DocumentRenderStage } from '../../components/documents/DocumentRenderStage';
+import { useDocumentExport } from '../../hooks/useDocumentExport';
 
 const FILTERS = [
 { id: '', label: 'All' },
@@ -29,6 +32,7 @@ export function InvoicesPage() {
   const { scope } = useBrands();
   const [status, setStatus] = useState('');
   const [generating, setGenerating] = useState(false);
+  const { exportInvoice, busy, stageProps } = useDocumentExport();
   const { data, loading, error, reload } = useApi(() => api.list<Invoice>('/api/billing/invoices/', { status, brand: scope }), [status, scope]);
   const outstanding = (data ?? []).filter((i) => i.status !== 'CANCELLED').reduce((s, i) => s + toNumber(i.balance_amount), 0);
 
@@ -62,11 +66,13 @@ export function InvoicesPage() {
           { key: 'date', header: 'Issued / due', render: (i) => <span className="whitespace-nowrap text-muted">{formatDate(i.invoice_date)} → {formatDate(i.due_date)}</span> },
           { key: 'status', header: 'Status', render: (i) => <StatusBadge status={i.status} /> },
           { key: 'total', header: 'Total', align: 'right', render: (i) => formatMoney(i.total_amount) },
-          { key: 'bal', header: 'Balance', align: 'right', render: (i) => <span className={toNumber(i.balance_amount) > 0 && i.status !== 'CANCELLED' ? 'font-medium' : 'text-muted'}>{formatMoney(i.balance_amount)}</span> }]
+          { key: 'bal', header: 'Balance', align: 'right', render: (i) => <span className={toNumber(i.balance_amount) > 0 && i.status !== 'CANCELLED' ? 'font-medium' : 'text-muted'}>{formatMoney(i.balance_amount)}</span> },
+          { key: 'pdf', header: '', align: 'right', className: 'w-px py-1.5', render: (i) => <InvoiceExportButtons invoice={i} busy={busy} onExport={exportInvoice} /> }]
           } />
         
       </Panel>
       <GenerateInvoiceModal open={generating} onClose={() => setGenerating(false)} onDone={() => {setGenerating(false);reload();}} />
+      <DocumentRenderStage {...stageProps} />
     </div>);
 
 }

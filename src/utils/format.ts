@@ -14,6 +14,11 @@ export function formatMoney(value: string | number | null | undefined, opts: {co
   return `Rs. ${new Intl.NumberFormat('en-LK', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n)}`;
 }
 
+/** Plain amount with two decimals and no currency prefix — for document tables. */
+export function formatAmount(value: string | number | null | undefined): string {
+  return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toNumber(value));
+}
+
 export function formatNumber(value: number | null | undefined): string {
   return new Intl.NumberFormat('en-LK').format(value ?? 0);
 }
