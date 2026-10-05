@@ -57,8 +57,14 @@ export function CustomerFormModal({ open, onClose, onSaved, customer }: Customer
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmed = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v.trim()])) as FormState;
+    // Only the customer name is required — omit untouched optional fields when creating.
+    const createBody = Object.fromEntries(Object.entries(trimmed).filter(([, v]) => v !== ''));
     const saved = await run(
-      () => customer ? api.patch<Customer>(`/api/customers/customers/${customer.id}/`, form) : api.post<Customer>('/api/customers/customers/', form),
+      () =>
+      customer ?
+      api.patch<Customer>(`/api/customers/customers/${customer.id}/`, trimmed) :
+      api.post<Customer>('/api/customers/customers/', createBody),
       customer ? 'Customer updated' : 'Customer created'
     );
     if (saved) onSaved(saved);
@@ -80,14 +86,14 @@ export function CustomerFormModal({ open, onClose, onSaved, customer }: Customer
       }>
       
       <form id="customer-form" onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-        <Field label="Company / customer name" htmlFor="c-company" required error={fieldErrors.company_name}>
-          <input id="c-company" required className={inputClass} value={form.company_name} onChange={set('company_name')} />
+        <Field label="Customer name" htmlFor="c-contact" required error={fieldErrors.contact_person || fieldErrors.name}>
+          <input id="c-contact" required autoFocus className={inputClass} value={form.contact_person} onChange={set('contact_person')} />
         </Field>
-        <Field label="Contact person" htmlFor="c-contact" required error={fieldErrors.contact_person}>
-          <input id="c-contact" required className={inputClass} value={form.contact_person} onChange={set('contact_person')} />
+        <Field label="Company name" htmlFor="c-company" error={fieldErrors.company_name}>
+          <input id="c-company" className={inputClass} value={form.company_name} onChange={set('company_name')} />
         </Field>
-        <Field label="Phone" htmlFor="c-phone" required error={fieldErrors.phone}>
-          <input id="c-phone" required className={inputClass} value={form.phone} onChange={set('phone')} />
+        <Field label="Phone" htmlFor="c-phone" error={fieldErrors.phone}>
+          <input id="c-phone" className={inputClass} value={form.phone} onChange={set('phone')} />
         </Field>
         <Field label="WhatsApp" htmlFor="c-wa" error={fieldErrors.whatsapp}>
           <input id="c-wa" className={inputClass} value={form.whatsapp} onChange={set('whatsapp')} />

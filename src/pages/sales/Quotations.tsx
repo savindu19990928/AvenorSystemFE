@@ -18,6 +18,8 @@ import { Tabs } from '../../components/ui/Tabs';
 import { QuotationFormModal } from '../../components/quotations/QuotationFormModal';
 import type { QuotationPrefill } from '../../components/quotations/QuotationFormModal';
 import { QuotationDetailModal } from '../../components/quotations/QuotationDetailModal';
+import { QuotationPrintModal } from '../../components/documents/QuotationPrintModal';
+import { RowPrintButton } from '../../components/print/RowPrintButton';
 
 export function Quotations() {
   const { hasRole } = useAuth();
@@ -26,6 +28,7 @@ export function Quotations() {
   const [status, setStatus] = useState('');
   const [creating, setCreating] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [printId, setPrintId] = useState<number | null>(null);
   const { data, loading, error, reload } = useApi(
     () => api.list<Quotation>('/api/quotations/quotations/', { brand: scope, status }),
     [scope, status]
@@ -89,7 +92,8 @@ export function Quotations() {
           { key: 'brand', header: 'Brand', render: (q) => <BrandTag name={q.brand_name} /> },
           { key: 'status', header: 'Status', render: (q) => <StatusBadge status={q.status} /> },
           { key: 'valid', header: 'Valid until', render: (q) => formatDate(q.validity_date) },
-          { key: 'total', header: 'Total', align: 'right', render: (q) => <span className="font-medium">{formatMoney(q.total_amount)}</span> }]
+          { key: 'total', header: 'Total', align: 'right', render: (q) => <span className="font-medium">{formatMoney(q.total_amount)}</span> },
+          { key: 'print', header: '', align: 'right', render: (q) => <RowPrintButton label={`Print ${q.quotation_number}`} onClick={() => setPrintId(q.id)} /> }]
           } />
         
       </Panel>
@@ -103,7 +107,16 @@ export function Quotations() {
           setOpenId(q.id);
         }} />
       
-      <QuotationDetailModal quotationId={openId} onClose={() => setOpenId(null)} onChanged={reload} />
+      <QuotationDetailModal
+        quotationId={openId}
+        onClose={() => setOpenId(null)}
+        onChanged={reload}
+        onPrint={(id) => {
+          setOpenId(null);
+          setPrintId(id);
+        }} />
+      
+      <QuotationPrintModal quotationId={printId} onClose={() => setPrintId(null)} />
     </div>);
 
 }

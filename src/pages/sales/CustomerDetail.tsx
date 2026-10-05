@@ -78,10 +78,10 @@ export function CustomerDetailPage() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs text-muted">{humanize(c.customer_type)} customer</p>
-          <h1 className="mt-0.5 text-2xl font-semibold tracking-tight">{c.company_name}</h1>
+          <h1 className="mt-0.5 text-2xl font-semibold tracking-tight">{c.company_name || c.contact_person}</h1>
           <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted">
-            <span>{c.contact_person}</span>
-            <a href={`tel:${c.phone}`} className="inline-flex items-center gap-1 hover:text-ink"><PhoneIcon className="h-3.5 w-3.5" />{c.phone}</a>
+            {c.company_name && <span>{c.contact_person}</span>}
+            {c.phone && <a href={`tel:${c.phone}`} className="inline-flex items-center gap-1 hover:text-ink"><PhoneIcon className="h-3.5 w-3.5" />{c.phone}</a>}
             {c.whatsapp && <a href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-ink"><MessageCircleIcon className="h-3.5 w-3.5" />WhatsApp</a>}
             {c.email && <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-ink"><MailIcon className="h-3.5 w-3.5" />{c.email}</a>}
           </div>

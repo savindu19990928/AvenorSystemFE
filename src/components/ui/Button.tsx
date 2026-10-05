@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2Icon, BoxIcon } from "lucide-react";
+import { Loader2Icon, type LucideIcon } from "lucide-react";
 import { cx } from "../../utils/styles";
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md';
@@ -7,7 +7,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   loading?: boolean;
-  icon?: BoxIcon;
+  icon?: LucideIcon;
 }
 const variants: Record<Variant, string> = {
   primary: 'bg-accent text-white hover:bg-accent-strong shadow-sm',

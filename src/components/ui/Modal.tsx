@@ -13,7 +13,7 @@ interface ModalProps {
   size?: 'md' | 'lg' | 'xl';
 }
 
-const widths = { md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
+const widths = { md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-5xl' };
 const ease = [0.23, 1, 0.32, 1] as const;
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {

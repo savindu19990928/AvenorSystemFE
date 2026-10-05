@@ -24,7 +24,7 @@ export function CustomerSelect({ id, value, onChange, disabled }: CustomerSelect
       <option value="">{loading ? 'Loading customers…' : error ? 'Could not load customers' : 'Select a customer'}</option>
       {data?.map((c) =>
       <option key={c.id} value={c.id}>
-          {c.company_name} — {c.contact_person}
+          {c.company_name ? `${c.company_name} — ${c.contact_person}` : c.contact_person}
         </option>
       )}
     </select>);

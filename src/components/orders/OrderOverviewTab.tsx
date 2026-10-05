@@ -1,6 +1,6 @@
 import React from 'react';
 import type { OrderDetail } from '../../types/api';
-import { formatMoney, formatNumber } from '../../utils/format';
+import { formatMoney, formatNumber, itemVariant } from '../../utils/format';
 import { StatusBadge } from '../ui/StatusBadge';
 
 export function OrderOverviewTab({ order }: {order: OrderDetail;}) {
@@ -11,8 +11,9 @@ export function OrderOverviewTab({ order }: {order: OrderDetail;}) {
         <table className="w-full text-sm">
           <thead className="border-b border-line text-left text-xs text-faint">
             <tr>
-              <th className="py-2 pr-3 font-medium">Product</th>
-              <th className="py-2 pr-3 font-medium">Colour / size</th>
+              <th className="min-w-[240px] py-2 pr-3 font-medium">Product</th>
+              <th className="py-2 pr-3 font-medium">Colours</th>
+              <th className="py-2 pr-3 font-medium">Sizes</th>
               <th className="py-2 pr-3 font-medium">Fabric</th>
               <th className="py-2 pr-3 font-medium">Printing</th>
               <th className="py-2 pr-3 text-right font-medium">Qty</th>
@@ -22,9 +23,10 @@ export function OrderOverviewTab({ order }: {order: OrderDetail;}) {
           </thead>
           <tbody>
             {order.items.map((i, idx) =>
-            <tr key={i.id ?? idx} className="border-b border-line/70">
+            <tr key={i.id ?? idx} className="border-b border-line/70 align-top">
                 <td className="py-2.5 pr-3 font-medium">{i.product_name}</td>
-                <td className="py-2.5 pr-3 text-muted">{i.colour} · {i.size}</td>
+                <td className="py-2.5 pr-3 text-muted">{itemVariant(i).colours || '—'}</td>
+                <td className="py-2.5 pr-3 text-muted">{itemVariant(i).sizes || '—'}</td>
                 <td className="py-2.5 pr-3 text-muted">{i.fabric_gsm || '—'}</td>
                 <td className="py-2.5 pr-3 text-muted">{i.printing_method || '—'}</td>
                 <td className="py-2.5 pr-3 text-right tabular-nums">{formatNumber(i.quantity)}</td>
@@ -35,7 +37,7 @@ export function OrderOverviewTab({ order }: {order: OrderDetail;}) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4} className="py-2.5 text-xs text-muted">{order.items.length} line{order.items.length === 1 ? '' : 's'}</td>
+              <td colSpan={5} className="py-2.5 text-xs text-muted">{order.items.length} line{order.items.length === 1 ? '' : 's'}</td>
               <td className="py-2.5 pr-3 text-right font-semibold tabular-nums">{formatNumber(qty)}</td>
               <td colSpan={2} />
             </tr>

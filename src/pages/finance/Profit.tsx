@@ -15,6 +15,8 @@ import { StateMessage } from '../../components/ui/StateMessage';
 import { Tabs } from '../../components/ui/Tabs';
 import { BrandTag } from '../../components/ui/BrandTag';
 import { ExpenseFormModal } from '../../components/workflow/ExpenseFormModal';
+import { ReportExportActions } from '../../components/print/ReportExportActions';
+import { profitReport } from '../../utils/reports';
 import { cx } from '../../utils/styles';
 
 type View = 'by_order' | 'by_brand' | 'by_month';
@@ -29,7 +31,7 @@ function extractRows(data: unknown): ProfitRow[] {
 }
 
 export function ProfitPage() {
-  const { scope } = useBrands();
+  const { scope, scopedBrand } = useBrands();
   const [view, setView] = useState<View>('by_order');
   const [adding, setAdding] = useState(false);
   const profit = useApi(() => api.get<unknown>('/api/analytics/profit/', { view, brand: scope }).then(extractRows), [view, scope]);
@@ -46,7 +48,12 @@ export function ProfitPage() {
       <PageHeader
         title="Profit & expenses"
         description="Revenue − T-shirt cost − Printing − Labour − Packaging − Delivery − Other = Profit, by order, brand or month."
-        actions={<Button variant="primary" icon={CoinsIcon} onClick={() => setAdding(true)}>Record expense</Button>} />
+        actions={
+        <>
+            <ReportExportActions spec={rows.length ? profitReport(rows, view, scopedBrand?.name ?? 'All brands') : null} brandId={scope} />
+            <Button variant="primary" icon={CoinsIcon} onClick={() => setAdding(true)}>Record expense</Button>
+          </>
+        } />
       
 
       <Panel>

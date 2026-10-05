@@ -8,6 +8,8 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel } from '../../components/ui/Panel';
 import { StateMessage } from '../../components/ui/StateMessage';
 import { BrandTag, isPremium } from '../../components/ui/BrandTag';
+import { ReportExportActions } from '../../components/print/ReportExportActions';
+import { salesReport } from '../../utils/reports';
 
 export function ReportsPage() {
   const { data, loading, error, reload } = useApi(() => api.get<ReportsData>('/api/analytics/reports/'), []);
@@ -20,7 +22,11 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Reports" description="Sales by brand, best customers and best-selling products." />
+      <PageHeader
+        title="Reports"
+        description="Sales by brand, best customers and best-selling products."
+        actions={<ReportExportActions spec={salesReport(data)} />} />
+      
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel title="Sales by brand" className="lg:col-span-2">

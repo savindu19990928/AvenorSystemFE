@@ -61,8 +61,8 @@ export function Customers() {
             header: 'Customer',
             render: (c) =>
             <div>
-                  <p className="font-medium">{c.company_name}</p>
-                  <p className="text-xs text-muted">{c.contact_person} · {c.phone}</p>
+                  <p className="font-medium">{c.company_name || c.contact_person}</p>
+                  <p className="text-xs text-muted">{[c.company_name ? c.contact_person : '', c.phone].filter(Boolean).join(' · ') || '—'}</p>
                 </div>
 
           },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, ArrowRightIcon, BoxesIcon, ListChecksIcon, XCircleIcon, PhoneIcon } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, BoxesIcon, ListChecksIcon, XCircleIcon, PhoneIcon, PrinterIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import { useAction } from '../../hooks/useAction';
@@ -24,6 +24,7 @@ import { OrderBillingTab } from '../../components/orders/OrderBillingTab';
 import { OrderDocumentsTab } from '../../components/orders/OrderDocumentsTab';
 import { OrderTimelineTab } from '../../components/orders/OrderTimelineTab';
 import { StatusUpdateModal } from '../../components/workflow/StatusUpdateModal';
+import { OrderPrintModal } from '../../components/documents/OrderPrintModal';
 
 type Tab = 'overview' | 'artwork' | 'production' | 'delivery' | 'billing' | 'documents' | 'timeline';
 
@@ -33,6 +34,7 @@ export function OrderDetailPage() {
   const [tab, setTab] = useState<Tab>('overview');
   const [statusOpen, setStatusOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const { data: order, loading, error, reload } = useApi(() => api.get<OrderDetail>(`/api/orders/orders/${id}/`), [id]);
   const { run, pending } = useAction();
 
@@ -79,6 +81,7 @@ export function OrderDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" icon={PrinterIcon} onClick={() => setPrinting(true)}>Print order</Button>
           {canCancel && <Button variant="ghost" icon={XCircleIcon} onClick={() => setCancelOpen(true)}>Cancel order</Button>}
           {canReserve && <Button icon={BoxesIcon} loading={pending} onClick={reserve}>Reserve stock</Button>}
           {!closed && <Button icon={ListChecksIcon} onClick={() => setStatusOpen(true)}>Change status</Button>}
@@ -147,6 +150,7 @@ export function OrderDetailPage() {
         </aside>
       </div>
 
+      <OrderPrintModal order={printing ? order : null} onClose={() => setPrinting(false)} />
       <StatusUpdateModal open={statusOpen} orderId={order.id} current={order.status} onClose={() => setStatusOpen(false)} onDone={() => {setStatusOpen(false);reload();}} />
       <ConfirmDialog
         open={cancelOpen}

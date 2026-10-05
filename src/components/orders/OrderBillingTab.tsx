@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ReceiptIcon, WalletIcon, CoinsIcon } from 'lucide-react';
-import type { Invoice, OrderDetail } from '../../types/api';
+import { ReceiptIcon, WalletIcon, CoinsIcon, PrinterIcon } from 'lucide-react';
+import type { Invoice, OrderDetail, Payment } from '../../types/api';
 import { api } from '../../utils/api';
 import { useApi } from '../../hooks/useApi';
 import { useAction } from '../../hooks/useAction';
@@ -12,9 +12,8 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PaymentFormModal } from '../workflow/PaymentFormModal';
 import { GenerateInvoiceModal } from '../workflow/GenerateInvoiceModal';
 import { ExpenseFormModal } from '../workflow/ExpenseFormModal';
-import { InvoiceExportButtons } from '../documents/InvoiceExportButtons';
-import { DocumentRenderStage } from '../documents/DocumentRenderStage';
-import { useDocumentExport } from '../../hooks/useDocumentExport';
+import { InvoicePrintModal } from '../documents/InvoicePrintModal';
+import { ReceiptPrintModal } from '../documents/ReceiptPrintModal';
 
 export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChanged: () => void;}) {
   const { hasRole } = useAuth();
@@ -23,8 +22,9 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
   const [invoicing, setInvoicing] = useState(false);
   const [expensing, setExpensing] = useState(false);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
+  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
+  const [receipt, setReceipt] = useState<Payment | null>(null);
   const { run, pending } = useAction();
-  const { exportInvoice, busy, stageProps } = useDocumentExport();
   const invoiceList = useApi(
     () => api.list<Invoice>('/api/billing/invoices/', { order: order.id }).then((l) => l.filter((i) => i.order === order.id || i.order_code === order.order_id)),
     [order.id]
@@ -87,7 +87,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
                 <StatusBadge status={i.status} />
                 <span className="text-muted">{i.due_date ? `Due ${formatDate(i.due_date)}` : ''}</span>
                 <span className="ml-auto tabular-nums">{formatMoney(i.total_amount)} <span className="text-muted">· bal {formatMoney(i.balance_amount)}</span></span>
-                <InvoiceExportButtons invoice={{ ...i, order: i.order ?? order.id }} busy={busy} onExport={exportInvoice} />
+                <Button size="sm" variant="ghost" icon={PrinterIcon} onClick={() => setPrintInvoice(i)}>Print</Button>
                 {canAct && i.id && i.status !== 'CANCELLED' &&
             <Button size="sm" variant="ghost" onClick={() => setCancelling(i)}>Cancel</Button>
             }
@@ -109,6 +109,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
                 <span className="rounded bg-canvas px-1.5 py-0.5 text-xs text-muted">{p.payment_type_display ?? humanize(p.payment_type)}</span>
                 <span className="text-muted">{p.payment_method_display ?? humanize(p.payment_method)}</span>
                 <span className="ml-auto font-medium tabular-nums">{formatMoney(p.amount)}</span>
+                <Button size="sm" variant="ghost" icon={PrinterIcon} onClick={() => setReceipt(p)}>Receipt</Button>
               </li>
           )}
           </ul>
@@ -131,6 +132,8 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
       <PaymentFormModal open={paying} order={ref} defaultType={depositPaid < toNumber(order.deposit_required) ? 'DEPOSIT' : 'BALANCE'} onClose={() => setPaying(false)} onDone={() => {setPaying(false);refresh();}} />
       <GenerateInvoiceModal open={invoicing} order={ref} onClose={() => setInvoicing(false)} onDone={() => {setInvoicing(false);refresh();}} />
       <ExpenseFormModal open={expensing} order={ref} onClose={() => setExpensing(false)} onDone={() => {setExpensing(false);refresh();}} />
+      <InvoicePrintModal invoice={printInvoice} onClose={() => setPrintInvoice(null)} />
+      <ReceiptPrintModal payment={receipt} order={order} onClose={() => setReceipt(null)} />
       <ConfirmDialog
         open={!!cancelling}
         onClose={() => setCancelling(null)}
@@ -143,7 +146,6 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
         reasonLabel="Reason"
         reasonRequired />
       
-      <DocumentRenderStage {...stageProps} />
     </div>);
 
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ReceiptIcon } from 'lucide-react';
 import { useBrands } from '../../contexts/BrandContext';
@@ -14,9 +14,10 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { BrandTag } from '../../components/ui/BrandTag';
 import { Tabs } from '../../components/ui/Tabs';
 import { GenerateInvoiceModal } from '../../components/workflow/GenerateInvoiceModal';
-import { InvoiceExportButtons } from '../../components/documents/InvoiceExportButtons';
-import { DocumentRenderStage } from '../../components/documents/DocumentRenderStage';
-import { useDocumentExport } from '../../hooks/useDocumentExport';
+import { InvoicePrintModal } from '../../components/documents/InvoicePrintModal';
+import { RowPrintButton } from '../../components/print/RowPrintButton';
+import { ReportExportActions } from '../../components/print/ReportExportActions';
+import { invoicesReport } from '../../utils/reports';
 
 const FILTERS = [
 { id: '', label: 'All' },
@@ -32,16 +33,22 @@ export function InvoicesPage() {
   const { scope } = useBrands();
   const [status, setStatus] = useState('');
   const [generating, setGenerating] = useState(false);
-  const { exportInvoice, busy, stageProps } = useDocumentExport();
   const { data, loading, error, reload } = useApi(() => api.list<Invoice>('/api/billing/invoices/', { status, brand: scope }), [status, scope]);
+  const [printing, setPrinting] = useState<Invoice | null>(null);
   const outstanding = (data ?? []).filter((i) => i.status !== 'CANCELLED').reduce((s, i) => s + toNumber(i.balance_amount), 0);
+  const spec = useMemo(() => data ? invoicesReport(data, FILTERS.find((f) => f.id === status)?.label ?? 'All') : null, [data, status]);
 
   return (
     <div>
       <PageHeader
         title="Invoices"
         description="Generated from orders — no manual re-entry. Cancelled invoices are kept and marked, never deleted."
-        actions={<Button variant="primary" icon={ReceiptIcon} onClick={() => setGenerating(true)}>Generate invoice</Button>}>
+        actions={
+        <>
+            <ReportExportActions spec={spec} brandId={scope} />
+            <Button variant="primary" icon={ReceiptIcon} onClick={() => setGenerating(true)}>Generate invoice</Button>
+          </>
+        }>
         
         {data && <p className="mt-3 text-sm text-muted">Outstanding in this view: <span className="font-semibold text-ink tabular-nums">{formatMoney(outstanding)}</span></p>}
       </PageHeader>
@@ -67,12 +74,12 @@ export function InvoicesPage() {
           { key: 'status', header: 'Status', render: (i) => <StatusBadge status={i.status} /> },
           { key: 'total', header: 'Total', align: 'right', render: (i) => formatMoney(i.total_amount) },
           { key: 'bal', header: 'Balance', align: 'right', render: (i) => <span className={toNumber(i.balance_amount) > 0 && i.status !== 'CANCELLED' ? 'font-medium' : 'text-muted'}>{formatMoney(i.balance_amount)}</span> },
-          { key: 'pdf', header: '', align: 'right', className: 'w-px py-1.5', render: (i) => <InvoiceExportButtons invoice={i} busy={busy} onExport={exportInvoice} /> }]
+          { key: 'print', header: '', align: 'right', render: (i) => <RowPrintButton label={`Print ${i.invoice_number}`} onClick={() => setPrinting(i)} /> }]
           } />
         
       </Panel>
+      <InvoicePrintModal invoice={printing} onClose={() => setPrinting(null)} />
       <GenerateInvoiceModal open={generating} onClose={() => setGenerating(false)} onDone={() => {setGenerating(false);reload();}} />
-      <DocumentRenderStage {...stageProps} />
     </div>);
 
 }

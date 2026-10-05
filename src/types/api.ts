@@ -33,8 +33,6 @@ export interface Brand {
   code: string;
   positioning: string;
   description?: string;
-  /** Brand logo file path or URL. When missing, documents fall back to the brand's first letter. */
-  logo?: string | null;
   is_active: boolean;
 }
 
@@ -173,6 +171,8 @@ export interface LineItem {
   quantity: number;
   size: string;
   colour: string;
+  sizes?: string[];
+  colours?: string[];
   fabric_gsm?: string;
   printing_method?: string;
   unit_price: Money;
@@ -312,7 +312,7 @@ export interface DeliveryNote {
   brand: {name: string;company: string;positioning: string;};
   customer: {company_name: string;contact_person: string;phone: string;delivery_address: string;};
   dispatch_details: {courier_name: string;tracking_number: string;dispatched_date: string;status: string;};
-  items: {product_name: string;colour: string;size: string;fabric_gsm: string;quantity: number;printing_method: string;}[];
+  items: {product_name: string;colour: string;size: string;colours?: string[];sizes?: string[];fabric_gsm: string;quantity: number;printing_method: string;}[];
   total_packages_or_pieces: number;
   special_instructions: string;
   issued_at: string;
@@ -336,6 +336,22 @@ export interface Invoice {
   paid_amount: Money;
   balance_amount: Money;
   status: string;
+  brand?: number;
+  customer?: number;
+}
+
+export interface InvoiceLine {
+  id?: number;
+  product_name: string;
+  description?: string;
+  quantity: number;
+  unit_price: Money;
+  total_price: Money;
+}
+
+export interface InvoiceDetail extends Invoice {
+  items?: InvoiceLine[];
+  payments?: Payment[];
 }
 
 export interface Payment {
@@ -353,6 +369,7 @@ export interface Payment {
   reference_number?: string;
   payment_date?: string;
   recorded_by_name?: string;
+  notes?: string;
 }
 
 export interface Expense {
