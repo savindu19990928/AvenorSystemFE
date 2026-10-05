@@ -5,69 +5,7 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged || proce
 
 let mainWindow = null;
 
-function createMenu() {
-  const isMac = process.platform === 'darwin';
-
-  const template = [
-    ...(isMac
-      ? [
-          {
-            label: app.name,
-            submenu: [
-              { role: 'about' },
-              { type: 'separator' },
-              { role: 'services' },
-              { type: 'separator' },
-              { role: 'hide' },
-              { role: 'hideOthers' },
-              { role: 'unhide' },
-              { type: 'separator' },
-              { role: 'quit' },
-            ],
-          },
-        ]
-      : []),
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
-    },
-    {
-      label: 'Window',
-      submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
-        ...(isMac
-          ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }]
-          : [{ role: 'close' }]),
-      ],
-    },
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
+const iconPath = path.join(__dirname, 'logo.png');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -75,9 +13,11 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: 'Avenor Apparel Admin',
+    title: 'Avenor System',
+    icon: iconPath,
     backgroundColor: '#ffffff',
     show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -86,7 +26,11 @@ function createWindow() {
     },
   });
 
-  createMenu();
+  // Ensure default menu bar is removed
+  mainWindow.setMenuBarVisibility(false);
+  if (typeof mainWindow.removeMenu === 'function') {
+    mainWindow.removeMenu();
+  }
 
   // Open external links (e.g. WhatsApp, web links) in the default OS browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -113,7 +57,15 @@ function createWindow() {
   });
 }
 
+// Set app name and disable default application menu bar
+app.setName('Avenor System');
+Menu.setApplicationMenu(null);
+
 app.whenReady().then(() => {
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(iconPath);
+  }
+
   createWindow();
 
   app.on('activate', () => {
@@ -130,3 +82,4 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+

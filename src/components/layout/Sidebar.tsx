@@ -9,9 +9,9 @@ export function Sidebar({ onNavigate }: {onNavigate?: () => void;}) {
   return (
     <div className="flex h-full flex-col bg-ink text-white">
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/10 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold">A</div>
+        <img src="./logo.png" alt="Avenor System Logo" className="h-8 w-8 object-contain" />
         <div className="leading-tight">
-          <p className="text-sm font-semibold">Avenor</p>
+          <p className="text-sm font-semibold">Avenor System</p>
           <p className="text-[11px] text-white/50">Management System</p>
         </div>
       </div>
@@ -46,7 +46,7 @@ export function Sidebar({ onNavigate }: {onNavigate?: () => void;}) {
 
         })}
       </nav>
-      <p className="border-t border-white/10 px-5 py-3 text-[11px] text-white/40">Your Company (Pvt) Ltd</p>
+      <p className="border-t border-white/10 px-5 py-3 text-[11px] text-white/40">Avenor Apparel (Pvt) Ltd</p>
     </div>);
 
 }

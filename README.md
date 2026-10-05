@@ -1,4 +1,4 @@
-# Avenor Apparel Admin Frontend
+# Avenor System
 
 Admin system frontend built with React, Vite, Tailwind CSS, and Electron.
 
@@ -25,7 +25,6 @@ npm run electron:dev
 ```
 - The desktop application window will open automatically.
 - Hot module replacement (HMR) is active: code changes in `src/` will instantly update inside the desktop app.
-- Native macOS menu bar (Edit with Cut/Copy/Paste, View with Reload, Window controls) is enabled.
 
 ### 4. Build & Package for macOS (.dmg / .app)
 To compile the production frontend and bundle it into an installable macOS application:
@@ -47,9 +46,9 @@ To compile the production frontend and bundle it into an installable macOS appli
 
 After building:
 - Inspect the output files in the `release/` folder:
-  - `Avenor Admin-<version>-arm64.dmg`
-  - `Avenor Admin-<version>-mac.zip`
-- Double-click the `.dmg` file and drag `Avenor Admin` into your **Applications** folder.
+  - `Avenor System-<version>-arm64.dmg`
+  - `Avenor System-<version>-mac.zip`
+- Double-click the `.dmg` file and drag `Avenor System` into your **Applications** folder.
 
 ---
 
