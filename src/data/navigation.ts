@@ -8,6 +8,7 @@ import {
   PaletteIcon,
   FactoryIcon,
   WarehouseIcon,
+  LayersIcon,
   ShirtIcon,
   TruckIcon,
   ReceiptIcon,
@@ -55,6 +56,7 @@ export const navGroups: NavGroup[] = [
   { to: '/artwork', label: 'Artwork', icon: PaletteIcon, roles: ['ADMIN', 'SALES', 'PRODUCTION'] },
   { to: '/production', label: 'Production', icon: FactoryIcon, roles: ['ADMIN', 'SALES', 'PRODUCTION'] },
   { to: '/inventory', label: 'Inventory', icon: WarehouseIcon, roles: ['ADMIN', 'STORE_KEEPER', 'SALES', 'PRODUCTION'] },
+  { to: '/materials', label: 'Materials', icon: LayersIcon, roles: ['ADMIN', 'STORE_KEEPER', 'ACCOUNTS', 'SALES', 'PRODUCTION'] },
   { to: '/catalog', label: 'Product catalogue', icon: ShirtIcon, roles: 'ALL' },
   { to: '/delivery', label: 'Delivery', icon: TruckIcon, roles: ['ADMIN', 'DELIVERY', 'SALES'] }]
 

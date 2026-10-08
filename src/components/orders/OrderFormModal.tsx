@@ -17,6 +17,9 @@ import { CustomerSelect } from '../forms/CustomerSelect';
 import { LineItemsEditor } from '../forms/LineItemsEditor';
 import { DepositPercentInput } from '../forms/DepositPercentInput';
 import { ProductionPlanFields } from '../production/ProductionPlanFields';
+import { ResourceUsageEditor } from '../resources/ResourceUsageEditor';
+import type { DraftResourceUsage } from '../../types/resources';
+import { isDraftResourceValid, toResourcePayload } from '../../utils/resources';
 import { inputClass } from '../../utils/styles';
 
 export function OrderFormModal({ open, onClose, onCreated }: {open: boolean;onClose: () => void;onCreated: (o: Order) => void;}) {
@@ -29,6 +32,7 @@ export function OrderFormModal({ open, onClose, onCreated }: {open: boolean;onCl
   const [items, setItems] = useState<DraftLineItem[]>([newDraftItem()]);
   const [process, setProcess] = useState<ProcessConfig>(defaultProcess());
   const [allocations, setAllocations] = useState<WipAllocations>({});
+  const [materials, setMaterials] = useState<DraftResourceUsage[]>([]);
   const { run, pending } = useAction();
 
   useEffect(() => {
@@ -42,10 +46,11 @@ export function OrderFormModal({ open, onClose, onCreated }: {open: boolean;onCl
     setItems([newDraftItem()]);
     setProcess(defaultProcess());
     setAllocations({});
+    setMaterials([]);
   }, [open]);
 
   const total = useMemo(() => items.reduce((s, i) => s + Number(i.quantity || 0) * Number(i.unit_price || 0), 0), [items]);
-  const valid = !!brand && !!customer && !!address.trim() && isValidPercent(depositPct) && process.order.length > 0 && items.every(isDraftItemValid);
+  const valid = !!brand && !!customer && !!address.trim() && isValidPercent(depositPct) && process.order.length > 0 && items.every(isDraftItemValid) && materials.every(isDraftResourceValid);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +64,8 @@ export function OrderFormModal({ open, onClose, onCreated }: {open: boolean;onCl
         deposit_required: depositAmount(total, Number(depositPct)).toFixed(2),
         printing_embroidery_requirements: requirements,
         ...processPayload(process),
-        items: items.map(toItemPayload)
+        items: items.map(toItemPayload),
+        resources: toResourcePayload(materials)
       });
       await allocateWip(created.order_id, process, allocations);
       return created;
@@ -91,6 +97,7 @@ export function OrderFormModal({ open, onClose, onCreated }: {open: boolean;onCl
             if (id !== brand) {
               setItems([newDraftItem()]);
               setAllocations({});
+              setMaterials([]);
             }
             setBrand(id);
           }} />
@@ -121,6 +128,7 @@ export function OrderFormModal({ open, onClose, onCreated }: {open: boolean;onCl
           <p className="mb-1.5 text-xs font-medium text-ink">Line items<span className="ml-0.5 text-danger">*</span></p>
           <LineItemsEditor brandId={brand} items={items} onChange={setItems} />
         </div>
+        <ResourceUsageEditor brandId={brand} value={materials} onChange={setMaterials} />
         <ProductionPlanFields
           idPrefix="o-proc"
           brandId={brand}

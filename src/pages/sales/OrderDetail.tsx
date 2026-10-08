@@ -26,7 +26,9 @@ import { OrderTimelineTab } from '../../components/orders/OrderTimelineTab';
 import { StatusUpdateModal } from '../../components/workflow/StatusUpdateModal';
 import { OrderPrintModal } from '../../components/documents/OrderPrintModal';
 
-type Tab = 'overview' | 'artwork' | 'production' | 'delivery' | 'billing' | 'documents' | 'timeline';
+import { OrderMaterialsTab } from '../../components/orders/OrderMaterialsTab';
+
+type Tab = 'overview' | 'materials' | 'artwork' | 'production' | 'delivery' | 'billing' | 'documents' | 'timeline';
 
 export function OrderDetailPage() {
   const { id } = useParams();
@@ -45,6 +47,7 @@ export function OrderDetailPage() {
   const canAdvance = !!next && canSetStatus(role, next) && order.status !== 'CANCELLED';
   const closed = order.status === 'CANCELLED' || order.status === 'ORDER_CLOSED';
   const canCancel = hasRole('ADMIN', 'SALES') && !closed;
+  const showMaterials = hasRole('ADMIN', 'SALES', 'STORE_KEEPER', 'ACCOUNTS', 'PRODUCTION');
   const canReserve = hasRole('ADMIN', 'SALES', 'STORE_KEEPER') && !closed && !(order.stock_reservations ?? []).some((r) => r.status === 'RESERVED' || r.status === 'ISSUED');
 
   const reserve = async () => {
@@ -107,6 +110,7 @@ export function OrderDetailPage() {
             <Tabs<Tab>
               tabs={[
               { id: 'overview', label: 'Items' },
+              ...(showMaterials ? [{ id: 'materials' as Tab, label: hasRole('ADMIN', 'ACCOUNTS', 'SALES') ? 'Materials & cost' : 'Materials' }] : []),
               { id: 'artwork', label: 'Artwork', count: order.artworks?.length },
               { id: 'production', label: 'Production' },
               { id: 'delivery', label: 'Delivery' },
@@ -119,6 +123,7 @@ export function OrderDetailPage() {
             
           </div>
           {tab === 'overview' && <OrderOverviewTab order={order} />}
+          {tab === 'materials' && showMaterials && <OrderMaterialsTab order={order} onChanged={reload} />}
           {tab === 'artwork' && <OrderArtworkTab order={order} onChanged={reload} />}
           {tab === 'production' && <OrderProductionTab order={order} onChanged={reload} />}
           {tab === 'delivery' && <OrderDeliveryTab order={order} onChanged={reload} />}

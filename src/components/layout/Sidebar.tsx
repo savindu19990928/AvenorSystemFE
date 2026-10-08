@@ -46,7 +46,7 @@ export function Sidebar({ onNavigate }: {onNavigate?: () => void;}) {
 
         })}
       </nav>
-      <p className="border-t border-white/10 px-5 py-3 text-[11px] text-white/40">Your Company (Pvt) Ltd</p>
+      <p className="border-t border-white/10 px-5 py-3 text-[11px] text-white/40">Avenor Apparel (Pvt) Ltd</p>
     </div>);
 
 }

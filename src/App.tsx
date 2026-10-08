@@ -19,6 +19,7 @@ import { ArtworkPage } from './pages/operations/Artwork';
 import { ProductionPage } from './pages/operations/Production';
 import { InventoryPage } from './pages/operations/Inventory';
 import { CatalogPage } from './pages/operations/Catalog';
+import { MaterialsPage } from './pages/operations/Materials';
 import { DeliveriesPage } from './pages/operations/Deliveries';
 import { InvoicesPage } from './pages/finance/Invoices';
 import { PaymentsPage } from './pages/finance/Payments';
@@ -68,6 +69,7 @@ export function App() {
             <Route path="artwork" element={<RequireRole roles={['ADMIN', 'SALES', 'PRODUCTION']}><ArtworkPage /></RequireRole>} />
             <Route path="production" element={<RequireRole roles={['ADMIN', 'SALES', 'PRODUCTION']}><ProductionPage /></RequireRole>} />
             <Route path="inventory" element={<RequireRole roles={['ADMIN', 'STORE_KEEPER', 'SALES', 'PRODUCTION']}><InventoryPage /></RequireRole>} />
+            <Route path="materials" element={<RequireRole roles={['ADMIN', 'STORE_KEEPER', 'ACCOUNTS', 'SALES', 'PRODUCTION']}><MaterialsPage /></RequireRole>} />
             <Route path="catalog" element={<CatalogPage />} />
             <Route path="delivery" element={<RequireRole roles={['ADMIN', 'DELIVERY', 'SALES']}><DeliveriesPage /></RequireRole>} />
             <Route path="invoices" element={<RequireRole roles={['ADMIN', 'ACCOUNTS']}><InvoicesPage /></RequireRole>} />
