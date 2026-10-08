@@ -263,9 +263,34 @@ export interface Artwork extends ArtworkSummary {
   created_at?: string;
 }
 
+export type StageName = 'CUTTING' | 'PRINTING' | 'EMBROIDERY' | 'SEWING' | 'FINISHING' | 'PACKING';
+
+export interface WipItem {
+  id: number;
+  product: number;
+  product_name: string;
+  brand: number;
+  brand_name: string;
+  sku: string;
+  colour: string;
+  size: string;
+  fabric_gsm?: string;
+  stage_completed: StageName;
+  stage_completed_display?: string;
+  quantity_on_hand: number;
+  reserved_quantity: number;
+  available_quantity: number;
+  source_order?: number | null;
+  source_order_code?: string | null;
+  notes?: string;
+  created_at?: string;
+}
+
 export interface ProductionStage {
   id?: number;
   stage_name: string;
+  quantity_to_inventory?: number;
+  quantity_to_next_stage?: number;
   stage_name_display?: string;
   sequence_order?: number;
   target_quantity?: number;
@@ -338,6 +363,36 @@ export interface Invoice {
   status: string;
   brand?: number;
   customer?: number;
+  deposit_percentage?: Money;
+  deposit_amount?: Money;
+  payment_terms?: string;
+  is_deposit_only?: boolean;
+}
+
+export interface Bill {
+  id: number;
+  bill_number: string;
+  invoice?: number;
+  invoice_number?: string;
+  order?: number;
+  order_code?: string;
+  customer_name?: string;
+  customer_company?: string;
+  brand_name?: string;
+  amount: Money;
+  is_deposit_only: boolean;
+  deposit_percentage?: Money;
+  total_order_amount?: Money;
+  balance_remaining?: Money;
+  bill_date?: string;
+  notes?: string;
+}
+
+export interface ConvertInvoiceResult {
+  message: string;
+  order: {order_id: string;status: string;total_amount: Money;paid_amount: Money;balance_amount: Money;};
+  payment: {payment_id: string;amount: Money;payment_type: string;payment_method: string;reference_number?: string;};
+  bill: {bill_number: string;amount: Money;is_deposit_only: boolean;deposit_percentage: Money;balance_remaining: Money;notes?: string;};
 }
 
 export interface InvoiceLine {
@@ -414,6 +469,8 @@ export interface OrderDetail extends Order {
   discount_amount?: Money;
   tax_amount?: Money;
   deposit_required?: Money;
+  production_process_order?: StageName[];
+  start_from_stage?: StageName | null;
   items: LineItem[];
   artworks?: ArtworkSummary[];
   stock_reservations?: StockReservation[];

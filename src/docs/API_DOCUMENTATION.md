@@ -1,6 +1,6 @@
 # Avenor Promotional T-Shirt Management System — API Documentation
 
-Comprehensive REST API Specification and Reference Guide for the **Internal Management System Blueprint (SRS Sections 1–24)** of the Promotional T-Shirt Company operating two registered brands (**Premium Brand** & **Standard Brand**) under **Avenor Apparel (Pvt) Ltd**.
+Comprehensive REST API Specification and Reference Guide for the **Internal Management System Blueprint (SRS Sections 1–24)** of the Promotional T-Shirt Company operating two registered brands (**Premium Brand** & **Standard Brand**) under **Your Company (Pvt) Ltd**.
 
 ---
 
@@ -34,7 +34,7 @@ Comprehensive REST API Specification and Reference Guide for the **Internal Mana
 The Avenor Management System is engineered strictly in accordance with the **System Requirements Specification (SRS Sections 1–24)**:
 
 * **Two-Brand Separation (SRS Sections 2 & 3)**:
-  - The legal entity **Avenor Apparel (Pvt) Ltd** operates two distinct registered commercial apparel brands:
+  - The legal entity **Your Company (Pvt) Ltd** operates two distinct registered commercial apparel brands:
     - **Premium Brand**: High Quality / Premium (220–260 GSM combed compact cotton, luxury hand feel, tailored for high-end corporate clients and tech events).
     - **Standard Brand**: Low Cost / Standard (160–190 GSM cotton/poly blend, economy promotional merchandise, mass event giveaways).
   - Every brand operation (products, inventory blanks, quotations, orders, production batches, delivery notes, invoices) strictly segregates brand identity. Cross-brand mixing is prevented by system validation rules.
@@ -233,7 +233,7 @@ Content-Type: application/json
 {
   "system": "Promotional T-Shirt Company — Internal Management System API",
   "blueprint_version": "2026.1",
-  "company": "Avenor Apparel (Pvt) Ltd",
+  "company": "Your Company (Pvt) Ltd",
   "registered_brands": [
     {
       "brand": "Premium Brand",
@@ -829,7 +829,7 @@ Content-Type: application/json
 ---
 
 #### `GET /api/core/brands/`
-* **Summary**: List the registered brands operated under Avenor Apparel (Pvt) Ltd. Enforces two-brand separation between Premium and Standard positioning.
+* **Summary**: List the registered brands operated under Your Company (Pvt) Ltd. Enforces two-brand separation between Premium and Standard positioning.
 * **SRS Blueprint Topic**: SRS Section 2 (Two-Brand Structure) & Section 3 (Brand Separation)
 * **Required User Type / Role**: Authenticated staff (Read-only for all staff; Write for `ADMIN`)
 
@@ -849,7 +849,7 @@ Content-Type: application/json
 [
   {
     "id": 1,
-    "company_name": "Avenor Apparel (Pvt) Ltd",
+    "company_name": "Your Company (Pvt) Ltd",
     "name": "Premium Brand",
     "code": "PREMIUM",
     "positioning": "High Quality / Premium (220 GSM)",
@@ -860,7 +860,7 @@ Content-Type: application/json
   },
   {
     "id": 2,
-    "company_name": "Avenor Apparel (Pvt) Ltd",
+    "company_name": "Your Company (Pvt) Ltd",
     "name": "Standard Brand",
     "code": "STANDARD",
     "positioning": "Low Cost / Standard (160 GSM)",
@@ -894,7 +894,7 @@ Content-Type: application/json
 ```json
 {
   "id": 1,
-  "company_name": "Avenor Apparel (Pvt) Ltd",
+  "company_name": "Your Company (Pvt) Ltd",
   "name": "Premium Brand",
   "code": "PREMIUM",
   "positioning": "High Quality / Premium (220 GSM)",
@@ -3253,7 +3253,7 @@ Content-Type: application/json
   "order_id": "ORD-2026-000125",
   "brand": {
     "name": "Premium Brand",
-    "company": "Avenor Apparel (Pvt) Ltd",
+    "company": "Your Company (Pvt) Ltd",
     "positioning": "High Quality / Premium (220 GSM)"
   },
   "customer": {

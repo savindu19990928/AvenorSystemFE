@@ -1,4 +1,4 @@
-import type { OrderStatus, Role } from '../types/api';
+import type { OrderStatus, Role, StageName } from '../types/api';
 
 export const ORDER_PIPELINE: OrderStatus[] = [
 'CUSTOMER_INQUIRY',
@@ -114,7 +114,22 @@ export const PRODUCT_TYPES = [
 { value: 'TOTE_BAG', label: 'Tote bag' }];
 
 
-export const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+export const SIZES = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL'];
+
+export const PRODUCTION_STAGES: {value: StageName;label: string;}[] = [
+{ value: 'CUTTING', label: 'Cutting' },
+{ value: 'PRINTING', label: 'Printing' },
+{ value: 'EMBROIDERY', label: 'Embroidery' },
+{ value: 'SEWING', label: 'Sewing' },
+{ value: 'FINISHING', label: 'Finishing' },
+{ value: 'PACKING', label: 'Packing' }];
+
+
+/** Standard sequence used when an order doesn't override it. Every step is optional; at least one is required. */
+export const DEFAULT_PROCESS_ORDER: StageName[] = ['CUTTING', 'PRINTING', 'EMBROIDERY', 'SEWING', 'FINISHING', 'PACKING'];
+
+/** Share of the invoice total the customer pays before production starts. */
+export const DEFAULT_DEPOSIT_PERCENT = 60;
 
 export function canSetStatus(role: Role | undefined, status: OrderStatus): boolean {
   if (!role) return false;

@@ -29,7 +29,7 @@ export function ProductionPage() {
   const [filter, setFilter] = useState<Filter>('active');
   const [initOpen, setInitOpen] = useState(false);
   const [initOrder, setInitOrder] = useState<Order | null>(null);
-  const [stage, setStage] = useState<{s: ProductionStage;mode: 'start' | 'complete';} | null>(null);
+  const [stage, setStage] = useState<{s: ProductionStage;next: ProductionStage | null;mode: 'start' | 'complete';} | null>(null);
   const { run, pending } = useAction();
   const { data, loading, error, reload } = useApi(() => api.list<ProductionJob>('/api/production/production-jobs/'), []);
 
@@ -51,7 +51,7 @@ export function ProductionPage() {
     <div>
       <PageHeader
         title="Production floor"
-        description="Cutting → Printing → Sewing/Finishing → Quality check → Packing. Each job inherits brand and approved spec from its order."
+        description="Each job follows the process order set on its order — any mix of cutting, printing, embroidery, sewing, finishing and packing. Extra output can be stored for future orders."
         actions={canAct && <Button variant="primary" icon={FactoryIcon} onClick={() => setInitOpen(true)}>Start job</Button>} />
       
       <div className="mb-4">
@@ -77,7 +77,12 @@ export function ProductionPage() {
                 </div>
           }>
           
-              <StageTrack stages={j.stages} canAct={canAct} onStart={(s) => setStage({ s, mode: 'start' })} onComplete={(s) => setStage({ s, mode: 'complete' })} />
+              <StageTrack
+            stages={j.stages}
+            canAct={canAct}
+            onStart={(s) => setStage({ s, next: null, mode: 'start' })}
+            onComplete={(s, next) => setStage({ s, next, mode: 'complete' })} />
+          
             </Panel>
         )}
         </div>
@@ -87,7 +92,7 @@ export function ProductionPage() {
         open={initOpen}
         onClose={() => setInitOpen(false)}
         title="Start production job"
-        description="Creates the five manufacturing stages for the order."
+        description="Creates the steps configured on the order, in its process order."
         footer={
         <>
             <Button onClick={() => setInitOpen(false)}>Cancel</Button>
@@ -99,7 +104,7 @@ export function ProductionPage() {
           <OrderSelect id="pj-order" status="ARTWORK_APPROVED" value={initOrder?.id ?? null} onChange={setInitOrder} />
         </Field>
       </Modal>
-      <StageActionModal stage={stage?.s ?? null} mode={stage?.mode ?? 'start'} onClose={() => setStage(null)} onDone={() => {setStage(null);reload();}} />
+      <StageActionModal stage={stage?.s ?? null} next={stage?.next ?? null} mode={stage?.mode ?? 'start'} onClose={() => setStage(null)} onDone={() => {setStage(null);reload();}} />
     </div>);
 
 }

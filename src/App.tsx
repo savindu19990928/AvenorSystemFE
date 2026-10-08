@@ -1,4 +1,5 @@
-import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Loader2Icon } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -49,15 +50,10 @@ function LoginRoute() {
   return <Login />;
 }
 
-const isDesktop =
-  typeof window !== 'undefined' &&
-  (window.location.protocol === 'file:' || !!(window as unknown as { electron?: unknown }).electron);
-const Router = isDesktop ? HashRouter : BrowserRouter;
-
 export function App() {
   return (
     <AuthProvider>
-      <Router>
+      <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
           <Route element={<ProtectedApp />}>
@@ -83,7 +79,7 @@ export function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </Router>
+      </BrowserRouter>
       <Toaster position="top-right" richColors closeButton />
     </AuthProvider>);
 

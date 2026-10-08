@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { ReceiptIcon, WalletIcon, CoinsIcon, PrinterIcon } from 'lucide-react';
-import type { Invoice, OrderDetail, Payment } from '../../types/api';
+import { ReceiptIcon, WalletIcon, CoinsIcon, PrinterIcon, PlayIcon } from 'lucide-react';
+import type { Bill, Invoice, OrderDetail, Payment } from '../../types/api';
+import { canConvertInvoice, invoiceDepositAmount, invoiceDepositPercent } from '../../utils/billing';
+import { ConvertInvoiceModal } from '../workflow/ConvertInvoiceModal';
 import { api } from '../../utils/api';
 import { useApi } from '../../hooks/useApi';
 import { useAction } from '../../hooks/useAction';
@@ -29,6 +31,9 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
     () => api.list<Invoice>('/api/billing/invoices/', { order: order.id }).then((l) => l.filter((i) => i.order === order.id || i.order_code === order.order_id)),
     [order.id]
   );
+  const [converting, setConverting] = useState<Invoice | null>(null);
+  const billList = useApi(() => api.list<Bill>('/api/billing/bills/', { order: order.id }).then((l) => l.filter((b) => b.order === order.id || b.order_code === order.order_id)), [order.id]);
+  const bills = billList.data ?? [];
   const invoices = invoiceList.data?.length ? invoiceList.data : order.invoices ?? [];
   const payments = order.payments ?? [];
   const profit = order.profit_summary;
@@ -36,6 +41,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
 
   const refresh = () => {
     invoiceList.reload();
+    billList.reload();
     onChanged();
   };
 
@@ -48,7 +54,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
     }
   };
 
-  const ref = { id: order.id, order_id: order.order_id, balance_amount: order.balance_amount };
+  const ref = { id: order.id, order_id: order.order_id, balance_amount: order.balance_amount, total_amount: order.total_amount };
 
   return (
     <div className="space-y-6 p-5">
@@ -86,7 +92,11 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
                 <span className="font-mono text-xs font-medium">{i.invoice_number}</span>
                 <StatusBadge status={i.status} />
                 <span className="text-muted">{i.due_date ? `Due ${formatDate(i.due_date)}` : ''}</span>
+                <span className="text-xs text-muted">{invoiceDepositPercent(i)}% deposit · {formatMoney(invoiceDepositAmount(i))}</span>
                 <span className="ml-auto tabular-nums">{formatMoney(i.total_amount)} <span className="text-muted">· bal {formatMoney(i.balance_amount)}</span></span>
+                {canAct && canConvertInvoice(i) &&
+            <Button size="sm" variant="primary" icon={PlayIcon} onClick={() => setConverting(i)}>Deposit paid</Button>
+            }
                 <Button size="sm" variant="ghost" icon={PrinterIcon} onClick={() => setPrintInvoice(i)}>Print</Button>
                 {canAct && i.id && i.status !== 'CANCELLED' &&
             <Button size="sm" variant="ghost" onClick={() => setCancelling(i)}>Cancel</Button>
@@ -96,6 +106,35 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
           </ul>
         }
       </section>
+
+      {bills.length > 0 &&
+      <section>
+          <h3 className="mb-2 text-sm font-semibold">Bills</h3>
+          <ul className="divide-y divide-line rounded-lg border border-line">
+            {bills.map((b) =>
+          <li key={b.bill_number} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                <span className="font-mono text-xs font-medium">{b.bill_number}</span>
+                {b.is_deposit_only ?
+            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-xs font-medium text-warn">
+                    Deposit only{b.deposit_percentage ? ` · ${toNumber(b.deposit_percentage)}%` : ''}
+                  </span> :
+
+            <span className="rounded bg-canvas px-1.5 py-0.5 text-xs text-muted">Full</span>
+            }
+                {b.bill_date && <span className="text-muted">{formatDate(b.bill_date)}</span>}
+                <span className="ml-auto text-right">
+                  <span className="font-medium tabular-nums">{formatMoney(b.amount)}</span>
+                  {b.is_deposit_only && b.total_order_amount &&
+              <span className="block text-xs text-muted tabular-nums">
+                      of {formatMoney(b.total_order_amount)} · {formatMoney(b.balance_remaining)} still due
+                    </span>
+              }
+                </span>
+              </li>
+          )}
+          </ul>
+        </section>
+      }
 
       <section>
         <h3 className="mb-2 text-sm font-semibold">Payments</h3>
@@ -131,6 +170,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
 
       <PaymentFormModal open={paying} order={ref} defaultType={depositPaid < toNumber(order.deposit_required) ? 'DEPOSIT' : 'BALANCE'} onClose={() => setPaying(false)} onDone={() => {setPaying(false);refresh();}} />
       <GenerateInvoiceModal open={invoicing} order={ref} onClose={() => setInvoicing(false)} onDone={() => {setInvoicing(false);refresh();}} />
+      <ConvertInvoiceModal invoice={converting} onClose={() => setConverting(null)} onDone={() => {setConverting(null);refresh();}} />
       <ExpenseFormModal open={expensing} order={ref} onClose={() => setExpensing(false)} onDone={() => {setExpensing(false);refresh();}} />
       <InvoicePrintModal invoice={printInvoice} onClose={() => setPrintInvoice(null)} />
       <ReceiptPrintModal payment={receipt} order={order} onClose={() => setReceipt(null)} />

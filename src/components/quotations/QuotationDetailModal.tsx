@@ -13,6 +13,11 @@ import { Field } from '../ui/Field';
 import { StatusBadge } from '../ui/StatusBadge';
 import { BrandTag } from '../ui/BrandTag';
 import { StateMessage } from '../ui/StateMessage';
+import { DepositPercentInput } from '../forms/DepositPercentInput';
+import { ProductionPlanFields } from '../production/ProductionPlanFields';
+import type { ProcessConfig, WipAllocations } from '../../types/production';
+import { depositAmount, isValidPercent, parseDepositPercent } from '../../utils/billing';
+import { allocateWip, defaultProcess, processPayload } from '../../utils/production';
 import { inputClass } from '../../utils/styles';
 
 interface QuotationDetailModalProps {
@@ -34,14 +39,18 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged, onPrint 
   const [converting, setConverting] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState(todayISO(21));
   const [address, setAddress] = useState('');
-  const [deposit, setDeposit] = useState('');
+  const [depositPct, setDepositPct] = useState('');
+  const [process, setProcess] = useState<ProcessConfig>(defaultProcess());
+  const [allocations, setAllocations] = useState<WipAllocations>({});
 
   useEffect(() => {
     setConverting(false);
+    setProcess(defaultProcess());
+    setAllocations({});
   }, [quotationId]);
 
   useEffect(() => {
-    if (data) setDeposit(String(Math.round(toNumber(data.total_amount) / 2)));
+    if (data) setDepositPct(String(parseDepositPercent(data.payment_terms)));
   }, [data]);
 
   const approve = async () => {
@@ -54,15 +63,17 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged, onPrint 
 
   const convert = async (e: React.FormEvent) => {
     e.preventDefault();
-    const order = await run(
-      () =>
-      api.post<Order>(`/api/quotations/quotations/${quotationId}/convert-to-order/`, {
+    if (!data) return;
+    const order = await run(async () => {
+      const created = await api.post<Order>(`/api/quotations/quotations/${quotationId}/convert-to-order/`, {
         expected_delivery_date: deliveryDate,
         delivery_address: address,
-        deposit_required: Number(deposit || 0).toFixed(2)
-      }),
-      'Order created and stock reserved'
-    );
+        deposit_required: depositAmount(toNumber(data.total_amount), Number(depositPct)).toFixed(2),
+        ...processPayload(process)
+      });
+      await allocateWip(created.order_id, process, allocations);
+      return created;
+    }, 'Order created and stock reserved');
     if (order) {
       onChanged();
       onClose();
@@ -98,7 +109,7 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged, onPrint 
             {canManage && converting &&
         <>
                 <Button onClick={() => setConverting(false)}>Back</Button>
-                <Button variant="primary" type="submit" form="convert-form" loading={pending} disabled={!address.trim()}>
+                <Button variant="primary" type="submit" form="convert-form" loading={pending} disabled={!address.trim() || !isValidPercent(depositPct)}>
                   Create order
                 </Button>
               </>
@@ -123,9 +134,15 @@ export function QuotationDetailModal({ quotationId, onClose, onChanged, onPrint 
             <Field label="Delivery address" htmlFor="cv-addr" required>
               <input id="cv-addr" required className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} />
             </Field>
-            <Field label="Deposit required" htmlFor="cv-dep" hint="Defaults to 50% of the quotation total.">
-              <input id="cv-dep" type="number" min={0} className={inputClass} value={deposit} onChange={(e) => setDeposit(e.target.value)} />
-            </Field>
+            <DepositPercentInput id="cv-dep" value={depositPct} onChange={setDepositPct} total={toNumber(data.total_amount)} />
+            <ProductionPlanFields
+          idPrefix="cv-proc"
+          brandId={data.brand}
+          config={process}
+          onConfigChange={setProcess}
+          allocations={allocations}
+          onAllocationsChange={setAllocations} />
+        
           </form> :
 
       <div className="space-y-5">

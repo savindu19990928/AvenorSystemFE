@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReceiptIcon } from 'lucide-react';
+import { ReceiptIcon, PlayIcon } from 'lucide-react';
 import { useBrands } from '../../contexts/BrandContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { canConvertInvoice, invoiceDepositAmount, invoiceDepositPercent } from '../../utils/billing';
+import { ConvertInvoiceModal } from '../../components/workflow/ConvertInvoiceModal';
 import { useApi } from '../../hooks/useApi';
 import { api } from '../../utils/api';
 import type { Invoice } from '../../types/api';
@@ -31,10 +34,13 @@ const FILTERS = [
 export function InvoicesPage() {
   const navigate = useNavigate();
   const { scope } = useBrands();
+  const { hasRole } = useAuth();
   const [status, setStatus] = useState('');
   const [generating, setGenerating] = useState(false);
   const { data, loading, error, reload } = useApi(() => api.list<Invoice>('/api/billing/invoices/', { status, brand: scope }), [status, scope]);
   const [printing, setPrinting] = useState<Invoice | null>(null);
+  const [converting, setConverting] = useState<Invoice | null>(null);
+  const canConvert = hasRole('ADMIN', 'ACCOUNTS');
   const outstanding = (data ?? []).filter((i) => i.status !== 'CANCELLED').reduce((s, i) => s + toNumber(i.balance_amount), 0);
   const spec = useMemo(() => data ? invoicesReport(data, FILTERS.find((f) => f.id === status)?.label ?? 'All') : null, [data, status]);
 
@@ -42,7 +48,7 @@ export function InvoicesPage() {
     <div>
       <PageHeader
         title="Invoices"
-        description="Generated from orders — no manual re-entry. Cancelled invoices are kept and marked, never deleted."
+        description="Generated from orders with a deposit share. Once the deposit is paid, start the order — the payment and a deposit-only bill are recorded automatically."
         actions={
         <>
             <ReportExportActions spec={spec} brandId={scope} />
@@ -72,13 +78,55 @@ export function InvoicesPage() {
           { key: 'brand', header: 'Brand', render: (i) => <BrandTag name={i.brand_name} /> },
           { key: 'date', header: 'Issued / due', render: (i) => <span className="whitespace-nowrap text-muted">{formatDate(i.invoice_date)} → {formatDate(i.due_date)}</span> },
           { key: 'status', header: 'Status', render: (i) => <StatusBadge status={i.status} /> },
+          {
+            key: 'deposit',
+            header: 'Deposit',
+            align: 'right',
+            render: (i) =>
+            <div className="whitespace-nowrap">
+                  <p className="tabular-nums">{formatMoney(invoiceDepositAmount(i))}</p>
+                  <p className="text-xs text-muted">{invoiceDepositPercent(i)}% to start</p>
+                </div>
+
+          },
           { key: 'total', header: 'Total', align: 'right', render: (i) => formatMoney(i.total_amount) },
           { key: 'bal', header: 'Balance', align: 'right', render: (i) => <span className={toNumber(i.balance_amount) > 0 && i.status !== 'CANCELLED' ? 'font-medium' : 'text-muted'}>{formatMoney(i.balance_amount)}</span> },
-          { key: 'print', header: '', align: 'right', render: (i) => <RowPrintButton label={`Print ${i.invoice_number}`} onClick={() => setPrinting(i)} /> }]
+          {
+            key: 'print',
+            header: '',
+            align: 'right',
+            render: (i) =>
+            <div className="flex items-center justify-end gap-1">
+                  {canConvert && canConvertInvoice(i) &&
+              <Button
+                size="sm"
+                icon={PlayIcon}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConverting(i);
+                }}>
+                
+                      Deposit paid
+                    </Button>
+              }
+                  <RowPrintButton label={`Print ${i.invoice_number}`} onClick={() => setPrinting(i)} />
+                </div>
+
+          }]
           } />
         
       </Panel>
       <InvoicePrintModal invoice={printing} onClose={() => setPrinting(null)} />
+      <ConvertInvoiceModal
+        invoice={converting}
+        onClose={() => setConverting(null)}
+        onDone={() => {
+          const orderId = converting?.order;
+          setConverting(null);
+          if (orderId) navigate(`/orders/${orderId}`);else
+          reload();
+        }} />
+      
       <GenerateInvoiceModal open={generating} onClose={() => setGenerating(false)} onDone={() => {setGenerating(false);reload();}} />
     </div>);
 

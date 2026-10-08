@@ -3,4 +3,5 @@ export interface OrderRef {
   order_id: string;
   delivery_address?: string;
   balance_amount?: string;
+  total_amount?: string;
 }

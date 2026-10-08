@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { AlertTriangleIcon, PackagePlusIcon, BanIcon } from 'lucide-react';
+import { AlertTriangleIcon, PackagePlusIcon, BanIcon, ArrowRightIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBrands } from '../../contexts/BrandContext';
 import { useApi } from '../../hooks/useApi';
 import { api } from '../../utils/api';
-import type { DamagedStock, InventoryItem, StockMovement, StockReservation } from '../../types/api';
+import type { DamagedStock, InventoryItem, StockMovement, StockReservation, WipItem } from '../../types/api';
+import { stageLabel, stagesAfter } from '../../utils/production';
+import { WipAllocateModal } from '../../components/inventory/WipAllocateModal';
 import { formatDateTime, formatMoney, formatNumber, humanize } from '../../utils/format';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel } from '../../components/ui/Panel';
@@ -16,7 +18,7 @@ import { Tabs } from '../../components/ui/Tabs';
 import { StockAdjustModal } from '../../components/inventory/StockAdjustModal';
 import { cx } from '../../utils/styles';
 
-type Tab = 'stock' | 'reservations' | 'movements' | 'damaged';
+type Tab = 'stock' | 'wip' | 'reservations' | 'movements' | 'damaged';
 
 export function InventoryPage() {
   const { hasRole } = useAuth();
@@ -25,6 +27,9 @@ export function InventoryPage() {
   const [tab, setTab] = useState<Tab>('stock');
   const [lowOnly, setLowOnly] = useState(false);
   const [adjust, setAdjust] = useState<{item: InventoryItem;mode: 'receive' | 'damaged';} | null>(null);
+  const [allocating, setAllocating] = useState<WipItem | null>(null);
+  const canAllocate = hasRole('ADMIN', 'STORE_KEEPER', 'PRODUCTION');
+  const wip = useApi(() => tab === 'wip' ? api.list<WipItem>('/api/inventory/wip/', { brand: scope }) : Promise.resolve(null), [tab, scope]);
 
   const items = useApi(() => api.list<InventoryItem>(lowOnly ? '/api/inventory/inventory-items/low-stock/' : '/api/inventory/inventory-items/', { brand: scope }), [scope, lowOnly]);
   const reservations = useApi(() => tab === 'reservations' ? api.list<StockReservation>('/api/inventory/reservations/') : Promise.resolve(null), [tab]);
@@ -36,13 +41,14 @@ export function InventoryPage() {
 
   const tabs: {id: Tab;label: string;}[] = [
   { id: 'stock', label: 'Blank stock' },
+  { id: 'wip', label: 'Semi-finished' },
   { id: 'reservations', label: 'Reservations' },
   ...(manage ? [{ id: 'movements', label: 'Movements' }, { id: 'damaged', label: 'Damaged' }] as {id: Tab;label: string;}[] : [])];
 
 
   return (
     <div>
-      <PageHeader title="Inventory" description="Blank garments by brand, colour, size and GSM. Confirmed orders reserve stock; cutting issues it to production." />
+      <PageHeader title="Inventory" description="Blank garments and stored semi-finished units by brand, colour, size and GSM. Confirmed orders reserve stock; cutting issues it to production." />
       <Panel flush>
         <div className="px-4 pt-1">
           <Tabs<Tab> tabs={tabs} active={tab} onChange={setTab} />
@@ -116,6 +122,67 @@ export function InventoryPage() {
           </>
         }
 
+        {tab === 'wip' &&
+        <>
+            <p className="border-b border-line px-4 py-3 text-sm text-muted">
+              Extra units stored after a production step. Use them in an order to skip the steps already done.
+            </p>
+            <DataTable
+            rows={wip.data?.filter((w) => !scope || w.brand === scope) ?? null}
+            loading={wip.loading}
+            error={wip.error}
+            onRetry={wip.reload}
+            getRowKey={(w) => w.id}
+            emptyTitle="No semi-finished stock"
+            columns={[
+            {
+              key: 'sku',
+              header: 'Item',
+              render: (w) =>
+              <div>
+                      <p className="font-medium">{w.product_name}</p>
+                      <p className="font-mono text-xs text-muted">{w.sku}</p>
+                    </div>
+
+            },
+            { key: 'brand', header: 'Brand', render: (w) => <BrandTag name={w.brand_name} /> },
+            { key: 'spec', header: 'Colour / size', render: (w) => <span className="text-muted">{w.colour} · {w.size}{w.fabric_gsm ? ` · ${w.fabric_gsm}` : ''}</span> },
+            {
+              key: 'stage',
+              header: 'Finished step',
+              render: (w) => {
+                const next = stagesAfter(w.stage_completed)[0];
+                return (
+                  <div>
+                        <p className="font-medium">{w.stage_completed_display ?? stageLabel(w.stage_completed)}</p>
+                        <p className="text-xs text-muted">{next ? `Can start from ${stageLabel(next)}` : 'Finished goods'}</p>
+                      </div>);
+
+              }
+            },
+            { key: 'src', header: 'From order', render: (w) => <span className="font-mono text-xs text-muted">{w.source_order_code || '—'}</span> },
+            { key: 'hand', header: 'On hand', align: 'right', render: (w) => formatNumber(w.quantity_on_hand) },
+            { key: 'res', header: 'Reserved', align: 'right', render: (w) => <span className="text-muted">{formatNumber(w.reserved_quantity)}</span> },
+            { key: 'avail', header: 'Available', align: 'right', render: (w) => <span className="font-semibold">{formatNumber(w.available_quantity)}</span> },
+            ...(canAllocate ?
+            [
+            {
+              key: 'act',
+              header: '',
+              align: 'right' as const,
+              render: (w: WipItem) =>
+              <Button size="sm" icon={ArrowRightIcon} disabled={w.available_quantity <= 0} onClick={() => setAllocating(w)}>
+                            Use in order
+                          </Button>
+
+            }] :
+
+            [])]
+            } />
+          
+          </>
+        }
+
         {tab === 'reservations' &&
         <DataTable
           rows={reservations.data}
@@ -179,6 +246,14 @@ export function InventoryPage() {
         onDone={() => {
           setAdjust(null);
           items.reload();
+        }} />
+      
+      <WipAllocateModal
+        item={allocating}
+        onClose={() => setAllocating(null)}
+        onDone={() => {
+          setAllocating(null);
+          wip.reload();
         }} />
       
     </div>);

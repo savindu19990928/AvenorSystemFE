@@ -30,8 +30,8 @@ export function Login() {
     <div className="grid min-h-full w-full bg-canvas lg:grid-cols-[1.1fr_1fr]">
       <section className="hidden flex-col justify-between bg-ink p-12 text-white lg:flex">
         <div className="flex items-center gap-2.5">
-          <img src="./logo.png" alt="Avenor System Logo" className="h-9 w-9 object-contain" />
-          <span className="text-lg font-semibold">Avenor System</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent font-bold">A</div>
+          <span className="text-lg font-semibold">Avenor</span>
         </div>
         <div className="max-w-md">
           <h1 className="text-3xl font-semibold leading-tight">Every order, from inquiry to closure, in one record.</h1>
@@ -49,7 +49,7 @@ export function Login() {
             </div>
           </dl>
         </div>
-        <p className="text-xs text-white/40">Avenor Apparel (Pvt) Ltd · Internal staff only</p>
+        <p className="text-xs text-white/40">Your Company (Pvt) Ltd · Internal staff only</p>
       </section>
 
       <section className="flex items-center justify-center p-6">

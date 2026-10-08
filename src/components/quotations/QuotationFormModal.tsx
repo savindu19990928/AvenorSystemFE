@@ -11,6 +11,9 @@ import { Field } from '../ui/Field';
 import { BrandPicker } from '../forms/BrandPicker';
 import { CustomerSelect } from '../forms/CustomerSelect';
 import { LineItemsEditor } from '../forms/LineItemsEditor';
+import { DepositPercentInput } from '../forms/DepositPercentInput';
+import { DEFAULT_DEPOSIT_PERCENT } from '../../data/workflow';
+import { depositTerms, isValidPercent } from '../../utils/billing';
 import { inputClass } from '../../utils/styles';
 
 export interface QuotationPrefill {
@@ -35,7 +38,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
   const [customer, setCustomer] = useState<number | null>(null);
   const [items, setItems] = useState<DraftLineItem[]>([newDraftItem()]);
   const [validity, setValidity] = useState(todayISO(30));
-  const [terms, setTerms] = useState('50% Advance Deposit on Confirmation, 50% on Delivery');
+  const [depositPct, setDepositPct] = useState(String(DEFAULT_DEPOSIT_PERCENT));
   const [artwork, setArtwork] = useState('0');
   const [delivery, setDelivery] = useState('0');
   const [discount, setDiscount] = useState('0');
@@ -49,6 +52,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
     setCustomer(prefill?.customer ?? null);
     setItems([newDraftItem({ quantity: prefill?.quantity ?? '', fabric_gsm: prefill?.fabric_gsm ?? '', printing_method: prefill?.printing_method ?? '' })]);
     setValidity(todayISO(30));
+    setDepositPct(String(DEFAULT_DEPOSIT_PERCENT));
     setArtwork('0');
     setDelivery('0');
     setDiscount('0');
@@ -69,7 +73,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
     return { subtotal, tax, total: subtotal + extras + tax };
   }, [items, artwork, delivery, discount, taxRate]);
 
-  const valid = !!brand && !!customer && items.length > 0 && items.every(isDraftItemValid);
+  const valid = !!brand && !!customer && isValidPercent(depositPct) && items.length > 0 && items.every(isDraftItemValid);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +85,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
         customer,
         inquiry: prefill?.inquiry ?? null,
         validity_date: validity,
-        payment_terms: terms,
+        payment_terms: depositTerms(Number(depositPct)),
         artwork_charges: Number(artwork || 0).toFixed(2),
         delivery_charges: Number(delivery || 0).toFixed(2),
         discount_amount: Number(discount || 0).toFixed(2),
@@ -119,9 +123,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
           <Field label="Valid until" htmlFor="q-valid" required>
             <input id="q-valid" type="date" className={inputClass} value={validity} onChange={(e) => setValidity(e.target.value)} />
           </Field>
-          <Field label="Payment terms" htmlFor="q-terms">
-            <input id="q-terms" className={inputClass} value={terms} onChange={(e) => setTerms(e.target.value)} />
-          </Field>
+          <DepositPercentInput id="q-terms" label="Deposit to start order" value={depositPct} onChange={setDepositPct} total={totals.total} />
         </div>
 
         <div>
