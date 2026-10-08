@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import type { OrderStatus } from '../../types/api';
+import { toast } from 'sonner';
+import type { Money, OrderStatus } from '../../types/api';
 import { api } from '../../utils/api';
 import { useAction } from '../../hooks/useAction';
 import { useAuth } from '../../contexts/AuthContext';
 import { ORDER_PIPELINE, canSetStatus, nextStatus } from '../../data/workflow';
-import { humanize } from '../../utils/format';
+import { autoPaymentMessage, submitAutoPayment, suggestedDeposit, type AutoPaymentMode, type AutoPaymentValues } from '../../utils/billing';
+import { humanize, toNumber } from '../../utils/format';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
+import { AutoPaymentFields } from './AutoPaymentFields';
 import { inputClass } from '../../utils/styles';
 
 interface StatusUpdateModalProps {
@@ -17,29 +20,46 @@ interface StatusUpdateModalProps {
   orderId: number;
   current: OrderStatus;
   initial?: OrderStatus | null;
+  finance?: {total_amount?: Money;balance_amount?: Money;deposit_required?: Money;};
 }
 
-export function StatusUpdateModal({ open, onClose, onDone, orderId, current, initial }: StatusUpdateModalProps) {
+const AUTO_MODES: Partial<Record<OrderStatus, AutoPaymentMode>> = { DEPOSIT_RECEIVED: 'deposit', PAYMENT_COMPLETED: 'complete' };
+
+export function StatusUpdateModal({ open, onClose, onDone, orderId, current, initial, finance = {} }: StatusUpdateModalProps) {
   const { role } = useAuth();
   const allowed = ORDER_PIPELINE.filter((s) => s !== current && canSetStatus(role, s));
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [notes, setNotes] = useState('');
-  const { run, pending } = useAction();
+  const [payment, setPayment] = useState<AutoPaymentValues>({ amount: '', payment_method: 'BANK_TRANSFER', reference_number: '', notes: '' });
+  const { run, pending, fieldErrors } = useAction();
+  const autoMode = status ? AUTO_MODES[status] : undefined;
+  const balance = toNumber(finance.balance_amount);
 
   useEffect(() => {
     if (!open) return;
     const next = initial ?? nextStatus(current);
     setStatus(next && allowed.includes(next) ? next : allowed[0] ?? '');
     setNotes('');
+    setPayment({ amount: String(suggestedDeposit(finance)), payment_method: 'BANK_TRANSFER', reference_number: '', notes: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, current, initial]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!status) return;
+    if (autoMode) {
+      const res = await run(() => submitAutoPayment(orderId, autoMode, payment));
+      if (res) {
+        toast.success(autoPaymentMessage(autoMode, res));
+        onDone();
+      }
+      return;
+    }
     const res = await run(() => api.post(`/api/orders/orders/${orderId}/update-status/`, { status, notes }), `Order moved to ${humanize(status)}`);
     if (res !== undefined) onDone();
   };
+
+  const valid = !!status && (autoMode !== 'deposit' || Number(payment.amount) > 0);
 
   return (
     <Modal
@@ -50,8 +70,8 @@ export function StatusUpdateModal({ open, onClose, onDone, orderId, current, ini
       footer={
       <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="status-form" loading={pending} disabled={!status}>
-            Update status
+          <Button variant="primary" type="submit" form="status-form" loading={pending} disabled={!valid}>
+            {autoMode === 'deposit' ? 'Record deposit' : autoMode === 'complete' ? 'Settle & complete' : 'Update status'}
           </Button>
         </>
       }>
@@ -67,9 +87,20 @@ export function StatusUpdateModal({ open, onClose, onDone, orderId, current, ini
             )}
             </select>
           </Field>
-          <Field label="Notes" htmlFor="st-notes">
-            <textarea id="st-notes" rows={3} className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </Field>
+          {autoMode ?
+        <AutoPaymentFields
+          mode={autoMode}
+          values={payment}
+          onChange={(p) => setPayment((v) => ({ ...v, ...p }))}
+          balance={balance}
+          idPrefix="st-pay"
+          fieldErrors={fieldErrors} /> :
+
+
+        <Field label="Notes" htmlFor="st-notes">
+              <textarea id="st-notes" rows={3} className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </Field>
+        }
         </form>
       }
     </Modal>);

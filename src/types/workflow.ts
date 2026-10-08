@@ -4,4 +4,5 @@ export interface OrderRef {
   delivery_address?: string;
   balance_amount?: string;
   total_amount?: string;
+  deposit_required?: string;
 }

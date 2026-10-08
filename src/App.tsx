@@ -9,7 +9,6 @@ import { RequireRole } from './components/layout/RequireRole';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Notifications } from './pages/Notifications';
-import { Inquiries } from './pages/sales/Inquiries';
 import { Customers } from './pages/sales/Customers';
 import { CustomerDetailPage } from './pages/sales/CustomerDetail';
 import { Quotations } from './pages/sales/Quotations';
@@ -60,7 +59,6 @@ export function App() {
           <Route element={<ProtectedApp />}>
             <Route index element={<Dashboard />} />
             <Route path="notifications" element={<Notifications />} />
-            <Route path="inquiries" element={<RequireRole roles={['ADMIN', 'SALES']}><Inquiries /></RequireRole>} />
             <Route path="customers" element={<RequireRole roles={['ADMIN', 'SALES', 'ACCOUNTS', 'DELIVERY', 'PRODUCTION']}><Customers /></RequireRole>} />
             <Route path="customers/:id" element={<RequireRole roles={['ADMIN', 'SALES', 'ACCOUNTS', 'DELIVERY', 'PRODUCTION']}><CustomerDetailPage /></RequireRole>} />
             <Route path="quotations" element={<RequireRole roles={['ADMIN', 'SALES', 'ACCOUNTS']}><Quotations /></RequireRole>} />

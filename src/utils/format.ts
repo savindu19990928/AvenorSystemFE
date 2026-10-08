@@ -1,5 +1,6 @@
 import { format, isValid, parseISO, formatDistanceToNow } from 'date-fns';
-import type { CellFormat, CellValue, PrintLineItem } from '../types/print';
+import type { CellFormat, CellValue, CommercialLine, PrintLineItem } from '../types/print';
+import { SIZES } from '../data/workflow';
 
 export function toNumber(value: string | number | null | undefined): number {
   if (value === null || value === undefined || value === '') return 0;
@@ -13,6 +14,11 @@ export function formatMoney(value: string | number | null | undefined, opts: {co
     return `Rs. ${new Intl.NumberFormat('en-LK', { notation: 'compact', maximumFractionDigits: 1 }).format(n)}`;
   }
   return `Rs. ${new Intl.NumberFormat('en-LK', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n)}`;
+}
+
+/** Plain two-decimal amount for document tables, e.g. 2,115,000.00 (currency stated in the header). */
+export function formatAmount(value: string | number | null | undefined): string {
+  return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toNumber(value));
 }
 
 export function formatNumber(value: number | null | undefined): string {
@@ -33,6 +39,11 @@ export function formatDate(value?: string | null): string {
 export function formatDateTime(value?: string | null): string {
   const d = parse(value);
   return d ? format(d, 'd MMM yyyy, HH:mm') : '—';
+}
+
+export function formatLongDate(value?: string | null): string {
+  const d = parse(value);
+  return d ? format(d, 'd MMMM yyyy') : '—';
 }
 
 export function timeAgo(value?: string | null): string {
@@ -89,6 +100,38 @@ export function lineItemDetails(i: LineLike): string[] {
 
 export function toPrintLine(i: LineLike): PrintLineItem {
   return { product_name: i.product_name, details: lineItemDetails(i), quantity: i.quantity, unit_price: i.unit_price, total_price: i.total_price };
+}
+
+/** Collapses a run of standard sizes to a range ("XXS-L"); otherwise lists them. */
+export function sizeRange(sizes: string[]): string {
+  const uniq = Array.from(new Set(sizes.map((s) => s.trim().toUpperCase()).filter(Boolean)));
+  if (uniq.length === 0) return '';
+  const idx = uniq.map((s) => SIZES.indexOf(s));
+  if (uniq.length > 2 && idx.every((i) => i >= 0)) {
+    const sorted = [...idx].sort((a, b) => a - b);
+    const contiguous = sorted.every((v, k) => k === 0 || v === sorted[k - 1] + 1);
+    if (contiguous) return `${SIZES[sorted[0]]}-${SIZES[sorted[sorted.length - 1]]}`;
+  }
+  return uniq.join(', ');
+}
+
+export function toCommercialLine(i: LineLike & {description?: string;}): CommercialLine {
+  const { colours } = itemVariant(i);
+  const sizeList = i.sizes?.length ? i.sizes : i.size ? i.size.split(/[,\s]+/) : [];
+  return {
+    description: i.product_name,
+    details: [colours && `Colour: ${colours}`, [i.fabric_gsm, i.printing_method].filter(Boolean).join(' · '), i.description].filter((s): s is string => !!s),
+    quantity: i.quantity,
+    sizes: sizeRange(sizeList),
+    unit_price: i.unit_price,
+    total_price: i.total_price
+  };
+}
+
+/** "a, b and c" */
+export function joinList(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? '';
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 }
 
 export function todayISO(offsetDays = 0): string {

@@ -33,6 +33,7 @@ export interface Brand {
   code: string;
   positioning: string;
   description?: string;
+  logo?: string | null;
   is_active: boolean;
 }
 
@@ -393,6 +394,24 @@ export interface ConvertInvoiceResult {
   order: {order_id: string;status: string;total_amount: Money;paid_amount: Money;balance_amount: Money;};
   payment: {payment_id: string;amount: Money;payment_type: string;payment_method: string;reference_number?: string;};
   bill: {bill_number: string;amount: Money;is_deposit_only: boolean;deposit_percentage: Money;balance_remaining: Money;notes?: string;};
+}
+
+/** Payment the server creates automatically on deposit / payment-completed transitions. */
+export interface AutoPayment {
+  payment_id: string;
+  amount: Money;
+  payment_type: string;
+  payment_method: string;
+}
+
+export interface AutoPaymentResult {
+  id: number;
+  order_id: string;
+  status: OrderStatus;
+  total_amount: Money;
+  paid_amount?: Money;
+  balance_amount?: Money;
+  auto_payment?: AutoPayment | null;
 }
 
 export interface InvoiceLine {

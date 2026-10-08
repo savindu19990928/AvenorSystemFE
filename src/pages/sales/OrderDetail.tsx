@@ -156,7 +156,7 @@ export function OrderDetailPage() {
       </div>
 
       <OrderPrintModal order={printing ? order : null} onClose={() => setPrinting(false)} />
-      <StatusUpdateModal open={statusOpen} orderId={order.id} current={order.status} onClose={() => setStatusOpen(false)} onDone={() => {setStatusOpen(false);reload();}} />
+      <StatusUpdateModal open={statusOpen} orderId={order.id} current={order.status} finance={{ total_amount: order.total_amount, balance_amount: order.balance_amount, deposit_required: order.deposit_required }} onClose={() => setStatusOpen(false)} onDone={() => {setStatusOpen(false);reload();}} />
       <ConfirmDialog
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}

@@ -1,7 +1,6 @@
 import {
   LayoutDashboardIcon,
   BellIcon,
-  InboxIcon,
   UsersIcon,
   FileTextIcon,
   PackageIcon,
@@ -44,7 +43,6 @@ export const navGroups: NavGroup[] = [
 {
   label: 'Sales',
   items: [
-  { to: '/inquiries', label: 'Leads & inquiries', icon: InboxIcon, roles: ['ADMIN', 'SALES'] },
   { to: '/customers', label: 'Customers', icon: UsersIcon, roles: ['ADMIN', 'SALES', 'ACCOUNTS', 'DELIVERY', 'PRODUCTION'] },
   { to: '/quotations', label: 'Quotations', icon: FileTextIcon, roles: ['ADMIN', 'SALES', 'ACCOUNTS'] },
   { to: '/orders', label: 'Orders', icon: PackageIcon, roles: 'ALL' }]

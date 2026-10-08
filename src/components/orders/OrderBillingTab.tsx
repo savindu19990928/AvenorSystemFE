@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { ReceiptIcon, WalletIcon, CoinsIcon, PrinterIcon, PlayIcon } from 'lucide-react';
+import { ReceiptIcon, WalletIcon, CoinsIcon, PrinterIcon, PlayIcon, BanknoteIcon, CheckCheckIcon } from 'lucide-react';
 import type { Bill, Invoice, OrderDetail, Payment } from '../../types/api';
-import { canConvertInvoice, invoiceDepositAmount, invoiceDepositPercent } from '../../utils/billing';
+import { canConvertInvoice, invoiceDepositAmount, invoiceDepositPercent, type AutoPaymentMode } from '../../utils/billing';
+import { ORDER_PIPELINE } from '../../data/workflow';
+import { AutoPaymentModal } from '../workflow/AutoPaymentModal';
 import { ConvertInvoiceModal } from '../workflow/ConvertInvoiceModal';
 import { api } from '../../utils/api';
 import { useApi } from '../../hooks/useApi';
@@ -26,6 +28,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
   const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
   const [receipt, setReceipt] = useState<Payment | null>(null);
+  const [autoMode, setAutoMode] = useState<AutoPaymentMode | null>(null);
   const { run, pending } = useAction();
   const invoiceList = useApi(
     () => api.list<Invoice>('/api/billing/invoices/', { order: order.id }).then((l) => l.filter((i) => i.order === order.id || i.order_code === order.order_id)),
@@ -54,7 +57,13 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
     }
   };
 
-  const ref = { id: order.id, order_id: order.order_id, balance_amount: order.balance_amount, total_amount: order.total_amount };
+  const ref = { id: order.id, order_id: order.order_id, balance_amount: order.balance_amount, total_amount: order.total_amount, deposit_required: order.deposit_required };
+
+  // Automated payments: the backend records the Payment and advances the order in one step.
+  const stage = ORDER_PIPELINE.indexOf(order.status);
+  const closed = order.status === 'CANCELLED' || order.status === 'ORDER_CLOSED';
+  const canDeposit = hasRole('ADMIN', 'SALES', 'ACCOUNTS') && !closed && stage >= 0 && stage < ORDER_PIPELINE.indexOf('DEPOSIT_RECEIVED');
+  const canComplete = canAct && !closed && !canDeposit && order.status !== 'PAYMENT_COMPLETED' && toNumber(order.balance_amount) > 0;
 
   return (
     <div className="space-y-6 p-5">
@@ -73,11 +82,19 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
         </div>
       </div>
 
-      {canAct &&
+      {(canAct || canDeposit) &&
       <div className="flex flex-wrap gap-2">
-          <Button variant="primary" icon={WalletIcon} onClick={() => setPaying(true)}>Record payment</Button>
-          <Button icon={ReceiptIcon} onClick={() => setInvoicing(true)}>Generate invoice</Button>
-          <Button icon={CoinsIcon} onClick={() => setExpensing(true)}>Add expense</Button>
+          {canDeposit && <Button variant="primary" icon={BanknoteIcon} onClick={() => setAutoMode('deposit')}>Record deposit</Button>}
+          {canComplete && <Button variant="primary" icon={CheckCheckIcon} onClick={() => setAutoMode('complete')}>Mark payment completed</Button>}
+          {canAct &&
+        <>
+              <Button variant={canDeposit || canComplete ? undefined : 'primary'} icon={WalletIcon} onClick={() => setPaying(true)}>
+                {canDeposit || canComplete ? 'Part payment' : 'Record payment'}
+              </Button>
+              <Button icon={ReceiptIcon} onClick={() => setInvoicing(true)}>Generate invoice</Button>
+              <Button icon={CoinsIcon} onClick={() => setExpensing(true)}>Add expense</Button>
+            </>
+        }
         </div>
       }
 
@@ -169,6 +186,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
       }
 
       <PaymentFormModal open={paying} order={ref} defaultType={depositPaid < toNumber(order.deposit_required) ? 'DEPOSIT' : 'BALANCE'} onClose={() => setPaying(false)} onDone={() => {setPaying(false);refresh();}} />
+      <AutoPaymentModal mode={autoMode} order={ref} onClose={() => setAutoMode(null)} onDone={() => {setAutoMode(null);refresh();}} />
       <GenerateInvoiceModal open={invoicing} order={ref} onClose={() => setInvoicing(false)} onDone={() => {setInvoicing(false);refresh();}} />
       <ConvertInvoiceModal invoice={converting} onClose={() => setConverting(null)} onDone={() => {setConverting(null);refresh();}} />
       <ExpenseFormModal open={expensing} order={ref} onClose={() => setExpensing(false)} onDone={() => {setExpensing(false);refresh();}} />

@@ -1,4 +1,5 @@
 import { useBrands } from '../contexts/BrandContext';
+import { brandLogos } from '../data/brandLogos';
 import type { BrandIdentity } from '../types/print';
 
 const HOUSE_NAME = 'Avenor Apparel';
@@ -13,6 +14,8 @@ export function useBrandIdentity(brandId?: number | null, brandName?: string | n
     name,
     company: brand?.company_name ?? brands[0]?.company_name ?? '',
     positioning: brand?.positioning,
-    tone: !hasBrand ? 'neutral' : name.toLowerCase().includes('premium') ? 'premium' : 'standard'
+    tone: !hasBrand ? 'neutral' : name.toLowerCase().includes('premium') ? 'premium' : 'standard',
+    code: brand?.code,
+    logo: brandLogos.find((b) => name.toLowerCase().includes(b.match))?.logo ?? brand?.logo ?? undefined
   };
 }
