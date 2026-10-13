@@ -1,5 +1,6 @@
 import { useBrands } from '../contexts/BrandContext';
-import { brandLogos } from '../data/brandLogos';
+import { resolveBrandLogo } from '../data/brandLogos';
+import { fileUrl } from '../utils/api';
 import type { BrandIdentity } from '../types/print';
 
 const HOUSE_NAME = 'Avenor Apparel';
@@ -10,12 +11,19 @@ export function useBrandIdentity(brandId?: number | null, brandName?: string | n
   const brand = brandById(brandId) ?? brands.find((b) => !!brandName && b.name === brandName);
   const name = brand?.name ?? brandName ?? HOUSE_NAME;
   const hasBrand = !!(brand || brandName);
+  const code = brand?.code;
+
+  // If the brand has a remote API logo that isn't already a full URL or data URI, convert it
+  const rawApiLogo = brand?.logo
+    ? (brand.logo.startsWith('http') || brand.logo.startsWith('data:') ? brand.logo : fileUrl(brand.logo))
+    : undefined;
+
   return {
     name,
     company: brand?.company_name ?? brands[0]?.company_name ?? '',
     positioning: brand?.positioning,
     tone: !hasBrand ? 'neutral' : name.toLowerCase().includes('premium') ? 'premium' : 'standard',
-    code: brand?.code,
-    logo: brandLogos.find((b) => name.toLowerCase().includes(b.match))?.logo ?? brand?.logo ?? undefined
+    code,
+    logo: resolveBrandLogo(name, code, rawApiLogo)
   };
 }
