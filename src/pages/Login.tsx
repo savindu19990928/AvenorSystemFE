@@ -49,7 +49,7 @@ export function Login() {
             </div>
           </dl>
         </div>
-        <p className="text-xs text-white/40">Avenor Apparel (Pvt) Ltd · Internal staff only</p>
+        <p className="text-xs text-white/40">Your Company (Pvt) Ltd · Internal staff only</p>
       </section>
 
       <section className="flex items-center justify-center p-6">
@@ -58,7 +58,7 @@ export function Login() {
           <p className="mt-1 text-sm text-muted">Use your staff account. Your role decides what you can see.</p>
 
           {error &&
-            <div role="alert" className="mt-6 flex gap-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2.5 text-sm text-danger">
+          <div role="alert" className="mt-6 flex gap-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2.5 text-sm text-danger">
               <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               {error}
             </div>

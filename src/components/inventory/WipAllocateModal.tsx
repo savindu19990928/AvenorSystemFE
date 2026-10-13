@@ -68,7 +68,12 @@ export function WipAllocateModal({ item, onClose, onDone }: WipAllocateModalProp
           <Field label="Quantity" htmlFor="wa-qty" hint={item ? `Up to ${formatNumber(item.available_quantity)}` : undefined} required>
             <input id="wa-qty" type="number" min={1} max={item?.available_quantity} className={inputClass} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
           </Field>
-          <Field label="Start the order at" htmlFor="wa-stage" hint="Earlier steps are skipped for these units." required>
+          <Field
+            label="Add to step"
+            htmlFor="wa-stage"
+            hint={order && item?.source_order_code === order.order_id ? 'Same order — the step’s target goes up by this amount.' : 'Earlier steps are skipped for these units.'}
+            required>
+            
             <select id="wa-stage" className={inputClass} value={target} onChange={(e) => setTarget(e.target.value as StageName)} disabled={options.length === 0}>
               {options.length === 0 && <option value="">No later steps</option>}
               {options.map((s) =>

@@ -19,6 +19,7 @@ import { Tabs } from '../../components/ui/Tabs';
 import { OrderSelect } from '../../components/forms/OrderSelect';
 import { StageTrack } from '../../components/production/StageTrack';
 import { StageActionModal } from '../../components/workflow/StageActionModal';
+import { AddWipToStageModal } from '../../components/production/AddWipToStageModal';
 
 type Filter = 'active' | 'COMPLETED' | 'all';
 
@@ -30,6 +31,7 @@ export function ProductionPage() {
   const [initOpen, setInitOpen] = useState(false);
   const [initOrder, setInitOrder] = useState<Order | null>(null);
   const [stage, setStage] = useState<{s: ProductionStage;next: ProductionStage | null;mode: 'start' | 'complete';} | null>(null);
+  const [wip, setWip] = useState<{s: ProductionStage;job: ProductionJob;} | null>(null);
   const { run, pending } = useAction();
   const { data, loading, error, reload } = useApi(() => api.list<ProductionJob>('/api/production/production-jobs/'), []);
 
@@ -81,7 +83,8 @@ export function ProductionPage() {
             stages={j.stages}
             canAct={canAct}
             onStart={(s) => setStage({ s, next: null, mode: 'start' })}
-            onComplete={(s, next) => setStage({ s, next, mode: 'complete' })} />
+            onComplete={(s, next) => setStage({ s, next, mode: 'complete' })}
+            onAddWip={(s) => setWip({ s, job: j })} />
           
             </Panel>
         )}
@@ -104,6 +107,13 @@ export function ProductionPage() {
           <OrderSelect id="pj-order" status="ARTWORK_APPROVED" value={initOrder?.id ?? null} onChange={setInitOrder} />
         </Field>
       </Modal>
+      <AddWipToStageModal
+        stage={wip?.s ?? null}
+        orderCode={wip?.job.order_code}
+        brandName={wip?.job.brand_name}
+        onClose={() => setWip(null)}
+        onDone={() => {setWip(null);reload();}} />
+      
       <StageActionModal stage={stage?.s ?? null} next={stage?.next ?? null} mode={stage?.mode ?? 'start'} onClose={() => setStage(null)} onDone={() => {setStage(null);reload();}} />
     </div>);
 

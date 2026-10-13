@@ -291,6 +291,9 @@ export interface ProductionStage {
   id?: number;
   stage_name: string;
   quantity_to_inventory?: number;
+  semi_finished_count?: number;
+  extra_pieces?: number;
+  extra_quantity?: number;
   quantity_to_next_stage?: number;
   stage_name_display?: string;
   sequence_order?: number;

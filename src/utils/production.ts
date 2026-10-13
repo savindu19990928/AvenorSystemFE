@@ -24,6 +24,17 @@ export function stagesAfter(stage: StageName): StageName[] {
   return idx === -1 ? [] : DEFAULT_PROCESS_ORDER.slice(idx + 1);
 }
 
+/** Steps that come before a given step in the standard sequence — stock finished at these can be added to it. */
+export function stagesBefore(stage: string): StageName[] {
+  const idx = DEFAULT_PROCESS_ORDER.indexOf(stage as StageName);
+  return idx <= 0 ? [] : DEFAULT_PROCESS_ORDER.slice(0, idx);
+}
+
+/** Net semi-finished pieces a step sends to inventory: extra pieces minus damaged pieces, never below zero. */
+export function semiFinishedCount(extra: number, damaged: number): number {
+  return Math.max(0, extra - damaged);
+}
+
 export function processPayload(config: ProcessConfig) {
   return { production_process_order: config.order, start_from_stage: config.startFrom };
 }

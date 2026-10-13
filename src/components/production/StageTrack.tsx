@@ -1,8 +1,8 @@
 import React from 'react';
-import { CheckIcon, PlayIcon, FlagIcon, ArchiveIcon } from 'lucide-react';
+import { CheckIcon, PlayIcon, FlagIcon, ArchiveIcon, PackagePlusIcon } from 'lucide-react';
 import type { ProductionStage } from '../../types/api';
 import { formatDateTime, formatNumber, humanize } from '../../utils/format';
-import { stageLabel } from '../../utils/production';
+import { stageLabel, stagesBefore } from '../../utils/production';
 import { Button } from '../ui/Button';
 import { cx } from '../../utils/styles';
 
@@ -11,9 +11,11 @@ interface StageTrackProps {
   canAct: boolean;
   onStart: (stage: ProductionStage) => void;
   onComplete: (stage: ProductionStage, next: ProductionStage | null) => void;
+  /** Add stored semi-finished stock into this step. */
+  onAddWip?: (stage: ProductionStage) => void;
 }
 
-export function StageTrack({ stages, canAct, onStart, onComplete }: StageTrackProps) {
+export function StageTrack({ stages, canAct, onStart, onComplete, onAddWip }: StageTrackProps) {
   const sorted = [...stages].sort((a, b) => (a.sequence_order ?? 0) - (b.sequence_order ?? 0));
   const active = sorted.filter((s) => s.status !== 'SKIPPED');
   return (
@@ -27,7 +29,9 @@ export function StageTrack({ stages, canAct, onStart, onComplete }: StageTrackPr
         const canComplete = canAct && !!s.id && s.status === 'IN_PROGRESS';
         const target = s.target_quantity ?? 0;
         const pct = target ? Math.min(100, s.completed_quantity / target * 100) : s.status === 'COMPLETED' ? 100 : 0;
-        const stored = s.quantity_to_inventory ?? 0;
+        const extraMade = s.extra_pieces ?? s.extra_quantity ?? 0;
+        const stored = s.semi_finished_count ?? s.quantity_to_inventory ?? 0;
+        const canAddWip = canAct && !!onAddWip && !!s.id && (s.status === 'PENDING' || s.status === 'IN_PROGRESS') && stagesBefore(s.stage_name).length > 0;
         return (
           <li
             key={s.id ?? s.stage_name}
@@ -60,16 +64,26 @@ export function StageTrack({ stages, canAct, onStart, onComplete }: StageTrackPr
                 </p>
               </>
             }
-            {stored > 0 &&
+            {(stored > 0 || extraMade > 0) &&
             <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-accent">
-                <ArchiveIcon className="h-3 w-3" aria-hidden /> {formatNumber(stored)} stored in inventory
+                <ArchiveIcon className="h-3 w-3 shrink-0" aria-hidden /> {formatNumber(stored)} semi-finished stored
+              </p>
+            }
+            {extraMade > 0 &&
+            <p className="text-[11px] text-faint tabular-nums">
+                {formatNumber(extraMade)} extra − {formatNumber(s.damaged_quantity ?? 0)} damaged
               </p>
             }
             {s.assigned_staff_name && <p className="mt-0.5 truncate text-[11px] text-faint">{s.assigned_staff_name} · {formatDateTime(s.start_time)}</p>}
             {s.damaged_reason && <p className="mt-1 text-[11px] text-danger">{s.damaged_reason}</p>}
-            <div className="mt-auto pt-3">
+            <div className="mt-auto space-y-1.5 pt-3">
               {canStart && <Button size="sm" icon={PlayIcon} className="w-full" onClick={() => onStart(s)}>Start</Button>}
               {canComplete && <Button size="sm" variant="primary" icon={FlagIcon} className="w-full" onClick={() => onComplete(s, next)}>Complete</Button>}
+              {canAddWip &&
+              <Button size="sm" variant="ghost" icon={PackagePlusIcon} className="w-full" onClick={() => onAddWip?.(s)}>
+                  Add stored stock
+                </Button>
+              }
             </div>
           </li>);
 

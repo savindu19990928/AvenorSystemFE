@@ -4,13 +4,11 @@ import { api } from '../../utils/api';
 import { useAction } from '../../hooks/useAction';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatNumber } from '../../utils/format';
-import { stageLabel } from '../../utils/production';
+import { semiFinishedCount, stageLabel } from '../../utils/production';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { cx, inputClass } from '../../utils/styles';
-
-type SurplusChoice = 'store' | 'forward' | 'split';
 
 interface StageActionModalProps {
   stage: ProductionStage | null;
@@ -24,33 +22,33 @@ interface StageActionModalProps {
 export function StageActionModal({ stage, next = null, mode, onClose, onDone }: StageActionModalProps) {
   const { user } = useAuth();
   const [completed, setCompleted] = useState('');
+  const [extra, setExtra] = useState('0');
   const [damaged, setDamaged] = useState('0');
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
-  const [choice, setChoice] = useState<SurplusChoice>('store');
-  const [splitStore, setSplitStore] = useState('');
   const { run, pending } = useAction();
 
   useEffect(() => {
     if (!stage) return;
     setCompleted(String(stage.target_quantity ?? ''));
+    setExtra('0');
     setDamaged('0');
     setReason('');
     setNotes('');
-    setChoice('store');
-    setSplitStore('');
   }, [stage]);
 
   const name = stage ? stage.stage_name_display ?? stageLabel(stage.stage_name) : '';
   const nextName = next ? next.stage_name_display ?? stageLabel(next.stage_name) : null;
-  const needsReason = Number(damaged) > 0;
 
-  const good = Math.max(0, Math.floor(Number(completed || 0)));
+  const toInt = (v: string) => Math.max(0, Math.floor(Number(v || 0)));
+  const good = toInt(completed);
+  const extraN = toInt(extra);
+  const damagedN = toInt(damaged);
+  const semiFinished = semiFinishedCount(extraN, damagedN);
+  const damageBeyondExtra = Math.max(0, damagedN - extraN);
+  const needsReason = damagedN > 0;
   const target = stage?.target_quantity ?? 0;
-  const surplus = target > 0 ? Math.max(0, good - target) : 0;
   const shortfall = target > 0 ? Math.max(0, target - good) : 0;
-  const toStore = surplus === 0 ? 0 : choice === 'forward' ? 0 : choice === 'store' ? surplus : Math.min(surplus, Math.max(0, Math.floor(Number(splitStore || 0))));
-  const toNext = good - toStore;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,30 +60,17 @@ export function StageActionModal({ stage, next = null, mode, onClose, onDone }: 
       () =>
       api.post(`/api/production/production-stages/${stage.id}/complete/`, {
         completed_quantity: good,
-        damaged_quantity: Number(damaged || 0),
+        extra_pieces: extraN,
+        damaged_quantity: damagedN,
         damaged_reason: reason,
-        quantity_to_inventory: toStore,
-        quantity_to_next_stage: toNext,
+        quantity_to_inventory: semiFinished,
+        quantity_to_next_stage: good,
         notes
       }),
-      toStore > 0 ? `${name} completed · ${toStore} stored in inventory` : `${name} completed`
+      semiFinished > 0 ? `${name} completed · ${formatNumber(semiFinished)} semi-finished stored` : `${name} completed`
     );
     if (res !== undefined) onDone();
   };
-
-  const options: {id: SurplusChoice;title: string;text: string;}[] = [
-  {
-    id: 'store',
-    title: 'Store in inventory',
-    text: `Kept as stock finished at ${name} — future orders can start from the next step.`
-  },
-  {
-    id: 'forward',
-    title: nextName ? `Send to ${nextName}` : 'Include in delivery',
-    text: nextName ? `${nextName} works on all ${formatNumber(good)}.` : `All ${formatNumber(good)} go out with the order.`
-  },
-  { id: 'split', title: 'Split', text: 'Choose how many to store; the rest move on.' }];
-
 
   return (
     <Modal
@@ -99,7 +84,7 @@ export function StageActionModal({ stage, next = null, mode, onClose, onDone }: 
       'Starting cutting issues the reserved blanks from the store and reduces stock.' :
       `Assigned to you (${user?.username ?? ''}).` :
       nextName ?
-      `${formatNumber(target)} needed for this order. Good output moves on to ${nextName}.` :
+      `${formatNumber(target)} needed for this order. Order pieces move on to ${nextName}; net extras go to semi-finished stock.` :
       `${formatNumber(target)} needed. This is the last step — completing it marks the order ready for delivery.`
       }
       footer={
@@ -114,11 +99,14 @@ export function StageActionModal({ stage, next = null, mode, onClose, onDone }: 
       <form id="stage-form" onSubmit={submit} className="space-y-4">
         {mode === 'complete' &&
         <>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Good units produced" htmlFor="sg-done" hint="Usable output, not counting damaged." required>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Pieces for this order" htmlFor="sg-done" hint={target ? `${formatNumber(target)} needed` : undefined} required>
                 <input id="sg-done" type="number" min={0} required className={inputClass} value={completed} onChange={(e) => setCompleted(e.target.value)} />
               </Field>
-              <Field label="Damaged quantity" htmlFor="sg-dmg">
+              <Field label="Extra pieces" htmlFor="sg-extra" hint="Made beyond what's needed">
+                <input id="sg-extra" type="number" min={0} className={inputClass} value={extra} onChange={(e) => setExtra(e.target.value)} />
+              </Field>
+              <Field label="Damaged pieces" htmlFor="sg-dmg">
                 <input id="sg-dmg" type="number" min={0} className={inputClass} value={damaged} onChange={(e) => setDamaged(e.target.value)} />
               </Field>
             </div>
@@ -128,44 +116,30 @@ export function StageActionModal({ stage, next = null, mode, onClose, onDone }: 
               </Field>
           }
 
-            {surplus > 0 &&
-          <fieldset className="rounded-lg border border-line p-3">
-                <legend className="px-1 text-sm font-semibold text-ink">
-                  {formatNumber(surplus)} extra beyond the {formatNumber(target)} needed
-                </legend>
-                <p className="text-xs text-muted">Decide where the extra units go.</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {options.map((o) => {
-                const on = choice === o.id;
-                return (
-                  <label
-                    key={o.id}
-                    className={cx(
-                      'flex cursor-pointer flex-col rounded-lg border p-3 transition-colors duration-150 ease-out focus-within:ring-2 focus-within:ring-accent/40',
-                      on ? 'border-accent bg-accent/5' : 'border-line hover:border-line-strong'
-                    )}>
-                    
-                        <span className="flex items-center gap-2">
-                          <input type="radio" name="surplus" value={o.id} checked={on} onChange={() => setChoice(o.id)} className="h-3.5 w-3.5 accent-[#1f6f5c]" />
-                          <span className="text-sm font-medium text-ink">{o.title}</span>
-                        </span>
-                        <span className="mt-1 text-xs leading-snug text-muted">{o.text}</span>
-                      </label>);
-
-              })}
+            {(extraN > 0 || damagedN > 0) &&
+          <section className="rounded-lg border border-line" aria-labelledby="sg-semi">
+                <p id="sg-semi" className="border-b border-line px-3 py-2 text-xs font-semibold text-ink">Semi-finished stock from {name}</p>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-3 text-sm tabular-nums">
+                  <span className="text-muted">{formatNumber(extraN)} extra</span>
+                  <span className="text-faint" aria-hidden>−</span>
+                  <span className="text-danger">{formatNumber(damagedN)} damaged</span>
+                  <span className="text-faint" aria-hidden>=</span>
+                  <span className={cx('text-lg font-semibold', semiFinished > 0 ? 'text-accent' : 'text-muted')}>
+                    {formatNumber(semiFinished)} to inventory
+                  </span>
                 </div>
-                {choice === 'split' &&
-            <Field label="Units to store" htmlFor="sg-split" hint={`Up to ${formatNumber(surplus)}`} className="mt-3 max-w-[200px]">
-                    <input id="sg-split" type="number" min={0} max={surplus} className={inputClass} value={splitStore} onChange={(e) => setSplitStore(e.target.value)} />
-                  </Field>
+                {damageBeyondExtra > 0 &&
+            <p className="border-t border-line bg-warn-soft/60 px-3 py-2 text-xs text-warn">
+                    Damage exceeds extras by {formatNumber(damageBeyondExtra)} — nothing is stored. Make sure “Pieces for this order” counts good pieces only.
+                  </p>
             }
-              </fieldset>
+              </section>
           }
 
             {shortfall > 0 && completed !== '' &&
           <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">
                 {formatNumber(shortfall)} short of the {formatNumber(target)} needed.
-                {nextName ? ` ${nextName} will receive ${formatNumber(good)}.` : ''} Stored stock can top this up from Inventory.
+                {nextName ? ` ${nextName} will receive ${formatNumber(good)}.` : ''} Stored stock can top this up.
               </p>
           }
 
@@ -173,11 +147,11 @@ export function StageActionModal({ stage, next = null, mode, onClose, onDone }: 
           <dl className="flex flex-wrap gap-x-6 gap-y-1 rounded-lg bg-canvas px-3 py-2 text-sm">
                 <div className="flex gap-1.5">
                   <dt className="text-muted">{nextName ? `To ${nextName}` : 'To delivery'}</dt>
-                  <dd className="font-semibold tabular-nums">{formatNumber(toNext)}</dd>
+                  <dd className="font-semibold tabular-nums">{formatNumber(good)}</dd>
                 </div>
                 <div className="flex gap-1.5">
                   <dt className="text-muted">To inventory</dt>
-                  <dd className="font-semibold tabular-nums">{formatNumber(toStore)}</dd>
+                  <dd className="font-semibold tabular-nums">{formatNumber(semiFinished)}</dd>
                 </div>
               </dl>
           }

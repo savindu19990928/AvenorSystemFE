@@ -11,11 +11,13 @@ import { StateMessage } from '../ui/StateMessage';
 import { StatusBadge } from '../ui/StatusBadge';
 import { StageTrack } from '../production/StageTrack';
 import { StageActionModal } from '../workflow/StageActionModal';
+import { AddWipToStageModal } from '../production/AddWipToStageModal';
 
 export function OrderProductionTab({ order, onChanged }: {order: OrderDetail;onChanged: () => void;}) {
   const { hasRole } = useAuth();
   const canAct = hasRole('ADMIN', 'PRODUCTION');
   const [stage, setStage] = useState<{s: ProductionStage;next: ProductionStage | null;mode: 'start' | 'complete';} | null>(null);
+  const [wipStage, setWipStage] = useState<ProductionStage | null>(null);
   const { run, pending } = useAction();
   const jobs = useApi(
     () => api.list<ProductionJob>('/api/production/production-jobs/', { order: order.id }).then((l) => l.find((j) => j.order === order.id || j.order_code === order.order_id) ?? null),
@@ -64,7 +66,19 @@ export function OrderProductionTab({ order, onChanged }: {order: OrderDetail;onC
         stages={job.stages}
         canAct={canAct}
         onStart={(s) => setStage({ s, next: null, mode: 'start' })}
-        onComplete={(s, next) => setStage({ s, next, mode: 'complete' })} />
+        onComplete={(s, next) => setStage({ s, next, mode: 'complete' })}
+        onAddWip={setWipStage} />
+      
+      <AddWipToStageModal
+        stage={wipStage}
+        orderCode={order.order_id}
+        brandId={order.brand}
+        brandName={order.brand_name}
+        onClose={() => setWipStage(null)}
+        onDone={() => {
+          setWipStage(null);
+          refresh();
+        }} />
       
       <StageActionModal
         stage={stage?.s ?? null}
