@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BrandProvider } from './contexts/BrandContext';
 import { AppShell } from './components/layout/AppShell';
 import { RequireRole } from './components/layout/RequireRole';
+import { UpdateNotifier } from './components/layout/UpdateNotifier';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Notifications } from './pages/Notifications';
@@ -81,6 +82,7 @@ export function App() {
         </Routes>
       </BrowserRouter>
       <Toaster position="top-right" richColors closeButton />
+      <UpdateNotifier />
     </AuthProvider>);
 
 }
