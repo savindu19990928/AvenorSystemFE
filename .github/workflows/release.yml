@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build & Publish (${{ matrix.os }})
+  build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -34,24 +34,70 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Resolve GitHub Token
-        shell: bash
-        run: |
-          if [ -n "${{ secrets.GH_TOKEN }}" ]; then
-            echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
-          elif [ -f electron/github-token.txt ]; then
-            TOKEN=$(tr -d '\r\n ' < electron/github-token.txt)
-            echo "GH_TOKEN=$TOKEN" >> $GITHUB_ENV
-          else
-            echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
-          fi
-
-      - name: Build and Publish Windows App
+      - name: Build Windows App
         if: matrix.os == 'windows-latest'
-        run: npx electron-builder --win --publish always
+        run: npx electron-builder --win --publish never
 
-      - name: Build and Publish macOS App
+      - name: Build macOS App
         if: matrix.os == 'macos-14'
-        run: npx electron-builder --mac --publish always
+        run: npx electron-builder --mac --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
+            release/*.dmg
+            release/*.dmg.blockmap
+            release/*.zip
+            release/*.zip.blockmap
+            release/latest-mac.yml
+          if-no-files-found: ignore
+
+  publish:
+    name: Publish Single Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine Release Tag
+        id: release_info
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          fi
+          echo "title=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Consolidate release assets
+        run: |
+          mkdir -p release-files
+          find all-artifacts -type f -exec cp {} release-files/ \;
+          echo "Files to publish:"
+          ls -la release-files
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: ${{ steps.release_info.outputs.title }}
+          files: release-files/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
