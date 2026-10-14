@@ -87,8 +87,16 @@ jobs:
         run: |
           mkdir -p release-files
           find all-artifacts -type f -exec cp {} release-files/ \;
+          cd release-files
+          for f in *\ *; do
+            [ -e "$f" ] || continue
+            new_name=$(echo "$f" | tr ' ' '-')
+            echo "Renaming '$f' to '$new_name'"
+            mv "$f" "$new_name"
+          done
           echo "Files to publish:"
-          ls -la release-files
+          ls -la
+          cd ..
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
