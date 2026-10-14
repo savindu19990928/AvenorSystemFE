@@ -27,14 +27,24 @@ function loadGitHubToken() {
   let token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 
   if (!token) {
-    const tokenPath = path.join(__dirname, 'github-token.txt');
-    try {
-      if (fs.existsSync(tokenPath)) {
-        token = fs.readFileSync(tokenPath, 'utf8').trim();
-        console.log('[AutoUpdater] Loaded GitHub token from:', tokenPath);
+    const candidatePaths = [
+      path.join(__dirname, 'github-token.txt'),
+      path.join(process.resourcesPath, 'github-token.txt'),
+      path.join(process.resourcesPath, 'electron', 'github-token.txt'),
+    ];
+    for (const tokenPath of candidatePaths) {
+      try {
+        if (fs.existsSync(tokenPath)) {
+          token = fs.readFileSync(tokenPath, 'utf8').trim();
+          console.log('[AutoUpdater] Loaded GitHub token from:', tokenPath);
+          break;
+        }
+      } catch (err) {
+        // continue searching
       }
-    } catch (err) {
-      console.warn('[AutoUpdater] Could not read github-token.txt from electron folder:', err.message);
+    }
+    if (!token) {
+      console.warn('[AutoUpdater] github-token.txt not found in expected locations');
     }
   }
 
@@ -103,6 +113,17 @@ function setupAutoUpdater() {
 
   autoUpdater.on('error', (err) => {
     const errMsg = err ? (err.message || err.toString()) : '';
+
+    // If GitHub returns 404 (no releases published yet), treat as up-to-date / no release yet
+    if (errMsg.includes('404') && errMsg.includes('releases/latest')) {
+      console.log('[AutoUpdater] No releases found yet on GitHub repository. Waiting for initial release.');
+      sendToRenderer('updater:status', {
+        status: 'not-available',
+        version: app.getVersion(),
+      });
+      return;
+    }
+
     console.error('[AutoUpdater] Error:', errMsg);
 
     // On macOS, if Squirrel.Mac reports a code signature limitation (e.g. running unsigned)
@@ -266,16 +287,37 @@ function createWindow() {
     return { action: 'allow' };
   });
 
+  // Handle load failures gracefully
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Renderer] Failed to load: ${validatedURL} (Error ${errorCode}: ${errorDescription})`);
+  });
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Renderer] Process gone:', details);
+  });
+
   if (isDev) {
     const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
-    mainWindow.loadURL(devServerUrl);
+    mainWindow.loadURL(devServerUrl).catch((err) => {
+      console.error('[Renderer] loadURL failed:', err);
+    });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch((err) => {
+      console.error('[Renderer] loadFile failed:', err);
+    });
   }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
+
+  // Safety fallback: ensure window becomes visible even if ready-to-show takes too long
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      console.log('[Window] Showing window via safety fallback timer');
+      mainWindow.show();
+    }
+  }, 2500);
 
   mainWindow.on('closed', () => {
     mainWindow = null;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Loader2Icon } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -54,7 +54,7 @@ function LoginRoute() {
 export function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
           <Route element={<ProtectedApp />}>
@@ -80,7 +80,7 @@ export function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
       <Toaster position="top-right" richColors closeButton />
       <UpdateNotifier />
     </AuthProvider>);

@@ -34,15 +34,24 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Resolve GitHub Token
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.GH_TOKEN }}" ]; then
+            echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+          elif [ -f electron/github-token.txt ]; then
+            TOKEN=$(cat electron/github-token.txt | tr -d '\r\n ')
+            echo "GH_TOKEN=$TOKEN" >> $GITHUB_ENV
+          else
+            echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+          fi
+
       - name: Build and Publish Windows App
         if: matrix.os == 'windows-latest'
         run: npx electron-builder --win --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Publish macOS App
         if: matrix.os == 'macos-14'
         run: npx electron-builder --mac --publish always
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
