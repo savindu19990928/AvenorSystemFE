@@ -29,6 +29,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         toast.info('Auto-update is disabled in development mode.');
       } else if (res.status === 'ok') {
         toast.info('Checking for updates...');
+      } else if (res.status === 'not-available') {
+        toast.success(res.message || 'Current version is up to date.');
       } else if (res.status === 'error') {
         toast.error(`Check failed: ${res.message || 'Unable to check updates'}`);
       }

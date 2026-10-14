@@ -124,6 +124,17 @@ function setupAutoUpdater() {
       return;
     }
 
+    // If release exists on GitHub but no installer manifest (latest.yml / latest-mac.yml) has been uploaded yet
+    if (errMsg.includes('Cannot find latest.yml') || errMsg.includes('Cannot find latest-mac.yml')) {
+      console.log('[AutoUpdater] Release exists on GitHub, but update package manifest for this platform has not been uploaded yet.');
+      sendToRenderer('updater:status', {
+        status: 'not-available',
+        version: app.getVersion(),
+        message: 'No update package available for this platform yet.',
+      });
+      return;
+    }
+
     console.error('[AutoUpdater] Error:', errMsg);
 
     // On macOS, if Squirrel.Mac reports a code signature limitation (e.g. running unsigned)
@@ -248,6 +259,9 @@ ipcMain.handle('updater:check', async () => {
     const msg = err?.message || err?.toString() || '';
     if (msg.includes('404') && msg.includes('releases/latest')) {
       return { status: 'not-available', message: 'Current version is up to date.' };
+    }
+    if (msg.includes('Cannot find latest.yml') || msg.includes('Cannot find latest-mac.yml')) {
+      return { status: 'not-available', message: 'Current version is up to date (no package update for this OS).' };
     }
     return { status: 'error', message: msg };
   }
