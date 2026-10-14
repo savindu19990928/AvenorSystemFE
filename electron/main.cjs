@@ -210,14 +210,23 @@ function setupAutoUpdater() {
   if (!isDev) {
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch((err) => {
-        console.error('[AutoUpdater] Check on launch failed:', err?.message || err);
+        const msg = err?.message || err?.toString() || '';
+        if (msg.includes('404') && msg.includes('releases/latest')) {
+          console.log('[AutoUpdater] No releases found on GitHub repository yet (normal before initial release).');
+          return;
+        }
+        console.error('[AutoUpdater] Check on launch failed:', msg);
       });
     }, 4000);
 
     // Periodically check every 4 hours while running
     setInterval(() => {
       autoUpdater.checkForUpdates().catch((err) => {
-        console.error('[AutoUpdater] Periodic check failed:', err?.message || err);
+        const msg = err?.message || err?.toString() || '';
+        if (msg.includes('404') && msg.includes('releases/latest')) {
+          return;
+        }
+        console.error('[AutoUpdater] Periodic check failed:', msg);
       });
     }, 4 * 60 * 60 * 1000);
   } else {
@@ -236,7 +245,11 @@ ipcMain.handle('updater:check', async () => {
     const result = await autoUpdater.checkForUpdates();
     return { status: 'ok', version: result?.updateInfo?.version };
   } catch (err) {
-    return { status: 'error', message: err?.message || err.toString() };
+    const msg = err?.message || err?.toString() || '';
+    if (msg.includes('404') && msg.includes('releases/latest')) {
+      return { status: 'not-available', message: 'Current version is up to date.' };
+    }
+    return { status: 'error', message: msg };
   }
 });
 
