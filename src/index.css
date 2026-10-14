@@ -5,7 +5,20 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+@theme {
+  --color-doc-navy: #0a1d44;
+  --color-doc-navy-dark: #06122b;
+  --color-doc-gold: #d4af37;
+  --color-doc-gold-light: #f4c76f;
+  --color-doc-goldink: #9a6d17;
+  --color-doc-panel: #edf2f9;
+  --color-doc-panel-alt: #f6f9fc;
+  --color-doc-cream: #faf7f0;
+  --color-doc-rule: #d2dbe8;
+}
+
 /* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
 
 html,
 body,
