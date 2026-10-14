@@ -20,25 +20,49 @@ autoUpdater.logger = {
   debug: (...args) => console.log('[AutoUpdater:debug]', ...args),
 };
 
-// Optional token support for private GitHub repository releases
-let ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-if (!ghToken) {
-  try {
-    const fs = require('fs');
-    const tokenFile = path.join(app.getPath('userData'), 'github-token.txt');
-    if (fs.existsSync(tokenFile)) {
-      ghToken = fs.readFileSync(tokenFile, 'utf8').trim();
+// Load GitHub token for private repository releases
+const fs = require('fs');
+
+function loadGitHubToken() {
+  let token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+
+  if (!token) {
+    const tokenPath = path.join(__dirname, 'github-token.txt');
+    try {
+      if (fs.existsSync(tokenPath)) {
+        token = fs.readFileSync(tokenPath, 'utf8').trim();
+        console.log('[AutoUpdater] Loaded GitHub token from:', tokenPath);
+      }
+    } catch (err) {
+      console.warn('[AutoUpdater] Could not read github-token.txt from electron folder:', err.message);
     }
-  } catch (err) {
-    // Ignore error if file doesn't exist
   }
+
+  if (token) {
+    process.env.GH_TOKEN = token;
+    process.env.GITHUB_TOKEN = token;
+    autoUpdater.requestHeaders = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    try {
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'savindu19990928',
+        repo: 'AvenorSystemFE',
+        private: true,
+        token: token,
+      });
+    } catch (err) {
+      console.error('[AutoUpdater] Failed to setFeedURL:', err);
+    }
+  }
+
+  return token;
 }
 
-if (ghToken) {
-  autoUpdater.requestHeaders = {
-    Authorization: `Bearer ${ghToken}`,
-  };
-}
+// Initial token load attempt
+loadGitHubToken();
 
 function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
@@ -50,6 +74,8 @@ let lastAvailableVersion = null;
 let lastReleaseNotes = null;
 
 function setupAutoUpdater() {
+  loadGitHubToken();
+
   autoUpdater.on('checking-for-update', () => {
     console.log('[AutoUpdater] Checking for updates...');
     sendToRenderer('updater:status', { status: 'checking' });

@@ -1,39 +1,59 @@
-# Avenor System - Cross-Platform Auto-Update & Release Guide (Windows & macOS)
+# Avenor System - 1-Click Setup & Cross-Platform Auto-Update Guide
 
-This document explains how the automatic update system works for **Avenor Management System** on both **Windows** and **macOS**, and how you can release new versions to all installed devices via GitHub.
-
----
-
-## 🚀 How Auto-Update Works for Users
-
-When a new version is released on GitHub:
-
-1. **Automatic Check on Startup**:
-   - Every time a user launches the software on Windows or macOS, the app checks GitHub Releases in the background (after a brief 4-second delay so startup is immediate and smooth).
-   - If an update is detected, the app automatically begins downloading it in the background.
-
-2. **In-App & System Notifications**:
-   - **While downloading**: A progress indicator appears in the bottom right corner showing the download percentage.
-   - **Once downloaded**: Both a native system prompt and an in-app banner appear with a **"Restart & Update Now"** button.
-   - **Zero-effort updates**: If the user ignores the prompt or clicks "Later", the update will **automatically install the moment they close the app**. Next time they launch it, it will already be running the newest version!
-
-3. **macOS-Specific Experience**:
-   - **Both Architectures Supported**: Builds and manifests are provided for both Apple Silicon (`arm64` — M1, M2, M3, M4 Macs) and Intel Macs (`x64`).
-   - **Seamless Zip Updates**: On macOS, `electron-updater` uses `.zip` files and `latest-mac.yml` to replace the `/Applications/Avenor System.app` bundle.
-   - **Smart Fallback**: If running in an unsigned or ad-hoc environment where macOS Gatekeeper blocks automatic binary swapping, the app immediately presents a 1-click **"Download DMG & Update"** card that directly opens the matching installer DMG for their specific Mac architecture.
-
-4. **Periodic & Manual Checks**:
-   - The app automatically re-checks for updates every 4 hours if left open all day.
-   - Users can also click the **"Updates"** button next to the version number at the bottom of the sidebar at any time.
+This document explains the **1-Click Setup** and **Automatic Update System** for **Avenor Management System** across both **Windows** and **macOS**.
 
 ---
 
-## 📦 How to Publish an Update (Step-by-Step)
+## ⚡ 1-Click Setup Experience for Users
 
-Whenever you push new code or features to GitHub and want all installed machines (Windows & Mac) to update automatically, follow these 3 steps:
+### 1. Windows (1-Click Installer)
+- **File**: `Avenor-System-Setup-X.X.X.exe`
+- **Installation**: Double-click the file **ONCE**.
+- **What happens automatically**:
+  - Installs silently in seconds without any confusing wizards or "Next" buttons.
+  - Automatically creates a Desktop shortcut.
+  - Automatically creates a Start Menu shortcut.
+  - Automatically launches the application right after installation.
+  - Does NOT prompt for administrator elevation (installs into user application space).
 
-### Step 1: Bump the Version Number
-Open `package.json` and increase the version number (e.g., from `0.0.1` to `0.0.2`):
+### 2. macOS (1-Click Package or DMG)
+- **Package Installer (`.pkg`)**:
+  - **File**: `Avenor-System-X.X.X-arm64.pkg` (Apple Silicon M1/M2/M3/M4) or `.pkg` (Intel)
+  - Double-click to open macOS’s native installer wizard, click "Install", and the app is placed directly in `/Applications` without any dragging!
+- **Disk Image (`.dmg`)**:
+  - **File**: `Avenor-System-X.X.X-arm64.dmg` or `.dmg`
+  - Mount and drag `Avenor System` into the `/Applications` folder alias.
+
+---
+
+## 🚀 How Installed Devices Get Updates Automatically
+
+Because your GitHub Personal Access Token is embedded in the application bundle (`electron/github-token.txt`):
+- **All installed devices authenticate to your private GitHub repository automatically.**
+- **No manual token entry or configuration is required on client computers!**
+
+### The Automatic Update Lifecycle:
+1. **Startup Check**:
+   - 4 seconds after opening the app, it contacts GitHub Releases via the GitHub API using the bundled token.
+   - If a new version exists, it silently downloads the update in the background.
+
+2. **In-App Progress & Alerts**:
+   - Shows a downloading indicator with progress percentage in the bottom corner.
+   - Once ready, an alert with a **"Restart & Update Now"** button appears.
+   - If the user ignores it, **the update will automatically apply the next time they close and re-open the software**.
+
+3. **Background Periodic Checks**:
+   - Every 4 hours while the app remains open.
+
+4. **Manual Check**:
+   - Users can click the **"Updates"** button at the bottom of the sidebar at any time.
+
+---
+
+## 📦 How to Publish a New Update to All Devices (3 Steps)
+
+### Step 1: Bump the Version in `package.json`
+Change `"version"` (e.g. from `0.0.1` to `0.0.2`):
 ```json
 {
   "name": "avenor-system-fe",
@@ -43,61 +63,34 @@ Open `package.json` and increase the version number (e.g., from `0.0.1` to `0.0.
 }
 ```
 
-### Step 2: Commit and Push to GitHub
+### Step 2: Commit and Push
 ```bash
 git add .
 git commit -m "Release v0.0.2: Description of updates"
 git push origin master
 ```
 
-### Step 3: Trigger the Build & Release
-
-You have two simple ways to trigger the release:
-
-#### Option A: Using a Git Tag (Recommended)
-Tag your commit with `v` followed by the version number:
+### Step 3: Tag and Trigger the Release
 ```bash
 git tag v0.0.2
 git push origin v0.0.2
 ```
-
-#### Option B: From the GitHub Website
-1. Go to your repository on GitHub: `https://github.com/savindu19990928/AvenorSystemFE`
-2. Click the **Actions** tab.
-3. Select **Release & Auto Update** from the left sidebar.
-4. Click **Run workflow** -> **Run workflow**.
+*(Or go to GitHub -> **Actions** -> **Release & Auto Update** -> **Run workflow**).*
 
 ---
 
-## ⚙️ What Happens in GitHub Actions
+## ⚙️ What GitHub Actions Builds
 
-The workflow (`.github/workflows/release.yml`) runs a parallel matrix build on both `windows-latest` and `macos-14`:
+The workflow (`.github/workflows/release.yml`) builds and publishes to GitHub Releases:
 
-1. **Windows Build**:
-   - Builds `Avenor System Setup X.X.X.exe` and blockmaps.
-   - Publishes `latest.yml` (Windows update manifest).
-
-2. **macOS Build**:
-   - Builds `Avenor-System-X.X.X-arm64.dmg` & `Avenor-System-X.X.X-arm64-mac.zip` (Apple Silicon).
-   - Builds `Avenor-System-X.X.X.dmg` & `Avenor-System-X.X.X-mac.zip` (Intel).
-   - Publishes `latest-mac.yml` (macOS update manifest).
-
-3. All assets are published into a single, unified GitHub Release.
-
----
-
-## 🔒 Public vs Private Repository Setup
-
-### If your GitHub Repository is Public:
-No additional configuration is needed! GitHub Releases are publicly accessible, and all Windows and Mac client devices will download updates seamlessly.
-
-### If your GitHub Repository is Private:
-GitHub blocks unauthorized access to private release assets. You have two options:
-- **Option 1 (Easiest)**: Set the repository to Public on GitHub (**Settings** -> **Change repository visibility** -> **Public**).
-- **Option 2 (Keep repo private)**:
-  1. In GitHub, go to **Settings** -> **Developer Settings** -> **Personal Access Tokens** -> **Fine-grained tokens**.
-  2. Create a token with Read-Only access to **Contents** (which includes releases).
-  3. On client machines, place the token into a file named `github-token.txt` in the app's user data folder:
-     - **Windows**: `%APPDATA%\Avenor System\github-token.txt`
-     - **macOS**: `~/Library/Application Support/Avenor System/github-token.txt`
-     - Or set the environment variable `GH_TOKEN`.
+| Platform | Files Produced | Purpose |
+|---|---|---|
+| **Windows** | `Avenor System Setup X.X.X.exe` | 1-Click Installer |
+| **Windows** | `latest.yml` | Auto-update manifest for Windows |
+| **macOS (Apple Silicon)** | `Avenor System-X.X.X-arm64.pkg` | 1-Click macOS Installer |
+| **macOS (Apple Silicon)** | `Avenor System-X.X.X-arm64.dmg` | DMG Disk Image |
+| **macOS (Apple Silicon)** | `Avenor System-X.X.X-arm64-mac.zip` | Background auto-update package |
+| **macOS (Intel)** | `Avenor System-X.X.X.pkg` | 1-Click macOS Installer |
+| **macOS (Intel)** | `Avenor System-X.X.X.dmg` | DMG Disk Image |
+| **macOS (Intel)** | `Avenor System-X.X.X-mac.zip` | Background auto-update package |
+| **macOS** | `latest-mac.yml` | Auto-update manifest for macOS |
