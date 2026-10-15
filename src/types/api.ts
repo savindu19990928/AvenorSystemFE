@@ -169,6 +169,7 @@ export interface LineItem {
   id?: number;
   product: number;
   product_name: string;
+  description?: string;
   quantity: number;
   size: string;
   colour: string;

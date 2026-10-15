@@ -36,8 +36,7 @@ export function ZevoraQuotationDocument({ quotation: q }: ZevoraQuotationDocumen
     printing_method: i.printing_method,
     unit_price: i.unit_price,
     total_price: i.total_price,
-    description: i.description,
-    details: i.details
+    description: i.description
   }));
 
   const discount = toNumber(q.discount_amount);

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electron', {
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   quitAndInstall: () => ipcRenderer.invoke('updater:quit-and-install'),
   openMacDownload: (version) => ipcRenderer.invoke('updater:open-mac-download', version),
+  startMacDownload: (version) => ipcRenderer.invoke('updater:start-mac-download', version),
   onUpdaterStatus: (callback) => {
     const listener = (_event, data) => callback(data);
     ipcRenderer.on('updater:status', listener);

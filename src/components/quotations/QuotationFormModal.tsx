@@ -73,7 +73,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
     return { subtotal, tax, total: subtotal + extras + tax };
   }, [items, artwork, delivery, discount, taxRate]);
 
-  const valid = !!brand && !!customer && isValidPercent(depositPct) && items.length > 0 && items.every(isDraftItemValid);
+  const valid = !!brand && !!customer && isValidPercent(depositPct) && items.length > 0 && items.every((i) => isDraftItemValid(i, { requirePrinting: true }));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +128,7 @@ export function QuotationFormModal({ open, onClose, onCreated, prefill }: Quotat
 
         <div>
           <p className="mb-1.5 text-xs font-medium text-ink">Line items<span className="ml-0.5 text-danger">*</span></p>
-          <LineItemsEditor brandId={brand} items={items} onChange={setItems} />
+          <LineItemsEditor brandId={brand} items={items} onChange={setItems} requirePrinting />
         </div>
 
         <div className="grid gap-6 md:grid-cols-[1fr_280px]">

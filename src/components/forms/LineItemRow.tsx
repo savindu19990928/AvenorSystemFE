@@ -13,6 +13,7 @@ interface LineItemRowProps {
   products: Product[] | null;
   productsLoading: boolean;
   canRemove: boolean;
+  requirePrinting?: boolean;
   onPatch: (patch: Partial<DraftLineItem>) => void;
   onPickProduct: (id: number) => void;
   onRemove: () => void;
@@ -20,7 +21,7 @@ interface LineItemRowProps {
 
 const label = 'mb-1 block text-xs text-faint';
 
-export function LineItemRow({ item, index, products, productsLoading, canRemove, onPatch, onPickProduct, onRemove }: LineItemRowProps) {
+export function LineItemRow({ item, index, products, productsLoading, canRemove, requirePrinting, onPatch, onPickProduct, onRemove }: LineItemRowProps) {
   const id = (f: string) => `li-${item.key}-${f}`;
   const total = Number(item.quantity || 0) * Number(item.unit_price || 0);
 
@@ -74,8 +75,17 @@ export function LineItemRow({ item, index, products, productsLoading, canRemove,
             <input id={id('gsm')} className={inputClass} value={item.fabric_gsm} onChange={(e) => onPatch({ fabric_gsm: e.target.value })} />
           </div>
           <div>
-            <label htmlFor={id('print')} className={label}>Printing</label>
-            <input id={id('print')} className={inputClass} placeholder="Screen print" value={item.printing_method} onChange={(e) => onPatch({ printing_method: e.target.value })} />
+            <label htmlFor={id('print')} className={label}>
+              Printing{requirePrinting && <span className="ml-0.5 text-danger">*</span>}
+            </label>
+            <input
+              id={id('print')}
+              required={requirePrinting}
+              className={inputClass}
+              placeholder="Screen print"
+              value={item.printing_method}
+              onChange={(e) => onPatch({ printing_method: e.target.value })}
+            />
           </div>
         </div>
       </div>

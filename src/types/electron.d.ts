@@ -8,6 +8,8 @@ export interface UpdaterStatus {
   total?: number;
   bytesPerSecond?: number;
   message?: string;
+  isMac?: boolean;
+  filePath?: string;
 }
 
 export interface ElectronAPI {
@@ -17,6 +19,7 @@ export interface ElectronAPI {
   checkForUpdates: () => Promise<{ status: string; message?: string; version?: string }>;
   quitAndInstall: () => Promise<void>;
   openMacDownload: (version?: string) => Promise<void>;
+  startMacDownload?: (version?: string) => Promise<{ status: string; filePath?: string; version?: string }>;
   onUpdaterStatus: (callback: (status: UpdaterStatus) => void) => () => void;
   versions: {
     node: string;

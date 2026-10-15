@@ -12,9 +12,10 @@ interface LineItemsEditorProps {
   brandId: number | null;
   items: DraftLineItem[];
   onChange: (items: DraftLineItem[]) => void;
+  requirePrinting?: boolean;
 }
 
-export function LineItemsEditor({ brandId, items, onChange }: LineItemsEditorProps) {
+export function LineItemsEditor({ brandId, items, onChange, requirePrinting }: LineItemsEditorProps) {
   const products = useApi(
     () => brandId ? api.list<Product>('/api/catalog/products/', { brand: brandId, is_active: true }) : Promise.resolve([] as Product[]),
     [brandId]
@@ -46,6 +47,7 @@ export function LineItemsEditor({ brandId, items, onChange }: LineItemsEditorPro
           products={products.data}
           productsLoading={products.loading}
           canRemove={items.length > 1}
+          requirePrinting={requirePrinting}
           onPatch={(patch) => update(item.key, patch)}
           onPickProduct={(id) => pickProduct(item.key, id)}
           onRemove={() => onChange(items.filter((i) => i.key !== item.key))} />

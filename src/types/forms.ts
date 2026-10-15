@@ -23,15 +23,16 @@ export function newDraftItem(partial: Partial<DraftLineItem> = {}): DraftLineIte
   };
 }
 
-export function isDraftItemValid(item: DraftLineItem): boolean {
+export function isDraftItemValid(item: DraftLineItem, options?: { requirePrinting?: boolean }): boolean {
   return (
     !!item.product_id &&
     Number(item.quantity) >= 1 &&
     item.unit_price !== '' &&
     Number(item.unit_price) >= 0 &&
     item.sizes.length > 0 &&
-    item.colours.length > 0);
-
+    item.colours.length > 0 &&
+    (!options?.requirePrinting || !!item.printing_method?.trim())
+  );
 }
 
 /** One line item carrying every selected size and colour — the API keeps it as a single item. */

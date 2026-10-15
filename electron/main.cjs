@@ -9,8 +9,10 @@ let mainWindow = null;
 const iconPath = path.join(__dirname, 'logo.png');
 
 // Configure autoUpdater settings
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
+// On macOS, native Squirrel.Mac auto-download triggers an Apple ShipIt code signature error on unsigned builds.
+// We disable autoDownload on macOS so we can download the DMG installer directly; keep true on Windows for silent NSIS updates.
+autoUpdater.autoDownload = process.platform !== 'darwin';
+autoUpdater.autoInstallOnAppQuit = process.platform !== 'darwin';
 
 // Custom logging for autoUpdater
 autoUpdater.logger = {
@@ -71,6 +73,54 @@ function loadGitHubToken() {
   return token;
 }
 
+// Helpers for authenticated GitHub release asset resolution & pre-signed downloads
+async function getReleaseAsset(version, arch = process.arch) {
+  const token = loadGitHubToken();
+  const tag = version ? (version.startsWith('v') ? version : `v${version}`) : null;
+  const endpoint = tag
+    ? `https://api.github.com/repos/savindu19990928/AvenorSystemFE/releases/tags/${tag}`
+    : 'https://api.github.com/repos/savindu19990928/AvenorSystemFE/releases/latest';
+
+  const res = await fetch(endpoint, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'AvenorSystem-Updater',
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`GitHub API returned HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const isMac = process.platform === 'darwin';
+  const targetArch = arch === 'arm64' ? 'arm64' : 'x64';
+
+  let asset = null;
+  if (isMac) {
+    asset = data.assets.find((a) => a.name.includes(targetArch) && a.name.endsWith('.dmg'));
+    if (!asset) {
+      asset = data.assets.find((a) => a.name.endsWith('.dmg'));
+    }
+  } else {
+    asset = data.assets.find((a) => a.name.endsWith('.exe'));
+  }
+
+  return { asset, version: data.tag_name ? data.tag_name.replace(/^v/, '') : data.name };
+}
+
+async function getSignedDownloadUrl(asset) {
+  const token = loadGitHubToken();
+  const res = await fetch(asset.url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/octet-stream',
+      'User-Agent': 'AvenorSystem-Updater',
+    },
+    redirect: 'manual',
+  });
+  return res.headers.get('location') || asset.browser_download_url;
+}
+
 // Initial token load attempt
 loadGitHubToken();
 
@@ -91,16 +141,157 @@ function setupAutoUpdater() {
     sendToRenderer('updater:status', { status: 'checking' });
   });
 
+  let downloadedMacDmgPath = null;
+  let isMacDownloading = false;
+
+  async function startMacDmgDownload(version) {
+    if (isMacDownloading) {
+      console.log('[AutoUpdater] macOS download is already in progress');
+      return { status: 'downloading' };
+    }
+    isMacDownloading = true;
+
+    try {
+      const targetVersion = version || lastAvailableVersion;
+      const { asset, version: releaseVer } = await getReleaseAsset(targetVersion, process.arch);
+      if (!asset) {
+        throw new Error(`No macOS DMG installer asset found for version ${targetVersion || 'latest'}`);
+      }
+
+      sendToRenderer('updater:status', {
+        status: 'downloading',
+        version: releaseVer,
+        percent: 0,
+        transferred: 0,
+        total: asset.size,
+      });
+
+      const downloadsFolder = app.getPath('downloads');
+      const targetFilePath = path.join(downloadsFolder, asset.name);
+
+      console.log(`[AutoUpdater] Downloading ${asset.name} (${asset.size} bytes) to ${targetFilePath}`);
+
+      const token = loadGitHubToken();
+      const downloadRes = await fetch(asset.url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/octet-stream',
+          'User-Agent': 'AvenorSystem-Updater',
+        },
+      });
+
+      if (!downloadRes.ok) {
+        throw new Error(`Failed to stream download: HTTP ${downloadRes.status}`);
+      }
+
+      const fileStream = fs.createWriteStream(targetFilePath);
+      const totalBytes = asset.size || parseInt(downloadRes.headers.get('content-length') || '0', 10);
+      let transferredBytes = 0;
+      let lastPercent = 0;
+      let lastTime = Date.now();
+      let bytesSinceLastTime = 0;
+
+      const reader = downloadRes.body.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        fileStream.write(Buffer.from(value));
+        transferredBytes += value.length;
+        bytesSinceLastTime += value.length;
+
+        const now = Date.now();
+        if (now - lastTime >= 400) {
+          const bytesPerSecond = Math.round((bytesSinceLastTime / (now - lastTime)) * 1000);
+          bytesSinceLastTime = 0;
+          lastTime = now;
+
+          const percent = totalBytes > 0 ? Math.round((transferredBytes / totalBytes) * 100) : 0;
+          if (percent !== lastPercent) {
+            lastPercent = percent;
+            sendToRenderer('updater:status', {
+              status: 'downloading',
+              version: releaseVer,
+              percent,
+              transferred: transferredBytes,
+              total: totalBytes,
+              bytesPerSecond,
+            });
+          }
+        }
+      }
+
+      fileStream.end();
+      await new Promise((resolve, reject) => {
+        fileStream.on('finish', resolve);
+        fileStream.on('error', reject);
+      });
+
+      downloadedMacDmgPath = targetFilePath;
+      isMacDownloading = false;
+
+      console.log(`[AutoUpdater] macOS update DMG downloaded successfully: ${targetFilePath}`);
+
+      sendToRenderer('updater:status', {
+        status: 'downloaded',
+        version: releaseVer,
+        isMac: true,
+        filePath: targetFilePath,
+      });
+
+      // Native dialog prompt for macOS
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        dialog
+          .showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Update Downloaded',
+            message: `Avenor System v${releaseVer} has been downloaded.`,
+            detail: 'Click "Open DMG Installer" to open the DMG disk image. You can then drag Avenor System into Applications to update.',
+            buttons: ['Open DMG Installer', 'Later'],
+            defaultId: 0,
+            cancelId: 1,
+          })
+          .then(({ response }) => {
+            if (response === 0) {
+              shell.openPath(targetFilePath);
+            }
+          });
+      }
+
+      return { status: 'downloaded', filePath: targetFilePath, version: releaseVer };
+    } catch (err) {
+      isMacDownloading = false;
+      const msg = err ? (err.message || err.toString()) : 'Download failed';
+      console.error('[AutoUpdater] macOS download failed:', msg);
+      sendToRenderer('updater:status', {
+        status: 'error',
+        message: 'Failed to download macOS update: ' + msg,
+      });
+      throw err;
+    }
+  }
+
   autoUpdater.on('update-available', (info) => {
     console.log('[AutoUpdater] Update available:', info.version);
     lastAvailableVersion = info.version;
     lastReleaseNotes = info.releaseNotes;
-    sendToRenderer('updater:status', {
-      status: 'available',
-      version: info.version,
-      releaseDate: info.releaseDate,
-      releaseNotes: info.releaseNotes,
-    });
+
+    if (process.platform === 'darwin') {
+      sendToRenderer('updater:status', {
+        status: 'mac-manual-update',
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes,
+      });
+    } else {
+      sendToRenderer('updater:status', {
+        status: 'available',
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes,
+      });
+    }
   });
 
   autoUpdater.on('update-not-available', (info) => {
@@ -142,7 +333,7 @@ function setupAutoUpdater() {
       process.platform === 'darwin' &&
       (errMsg.includes('code signature') || errMsg.includes('ShipIt') || errMsg.includes('Could not get code signature'))
     ) {
-      console.log('[AutoUpdater] macOS code signature check intercepted. Offering direct DMG 1-click update.');
+      console.log('[AutoUpdater] macOS code signature check intercepted. Offering direct DMG update.');
       sendToRenderer('updater:status', {
         status: 'mac-manual-update',
         version: lastAvailableVersion || undefined,
@@ -157,16 +348,26 @@ function setupAutoUpdater() {
             type: 'info',
             title: 'Update Available for macOS',
             message: `A new version of Avenor System (${lastAvailableVersion}) is available.`,
-            detail: 'Click "Download Update" to open the new DMG installer.',
-            buttons: ['Download Update', 'Later'],
+            detail: 'Click "Download Update" to start downloading the DMG installer directly.',
+            buttons: ['Download Update', 'Download via Browser', 'Later'],
             defaultId: 0,
-            cancelId: 1,
+            cancelId: 2,
           })
-          .then(({ response }) => {
+          .then(async ({ response }) => {
             if (response === 0) {
-              const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-              const downloadUrl = `https://github.com/savindu19990928/AvenorSystemFE/releases/download/v${lastAvailableVersion}/Avenor-System-${lastAvailableVersion}-${arch}.dmg`;
-              shell.openExternal(downloadUrl);
+              startMacDmgDownload(lastAvailableVersion).catch(() => {});
+            } else if (response === 1) {
+              try {
+                const { asset } = await getReleaseAsset(lastAvailableVersion, process.arch);
+                if (asset) {
+                  const signedUrl = await getSignedDownloadUrl(asset);
+                  if (signedUrl) {
+                    shell.openExternal(signedUrl);
+                  }
+                }
+              } catch (openErr) {
+                console.error('[AutoUpdater] Failed to get signed download URL:', openErr);
+              }
             }
           });
       }
@@ -243,6 +444,41 @@ function setupAutoUpdater() {
   } else {
     console.log('[AutoUpdater] Running in development mode; automatic update checks skipped.');
   }
+
+  // Handle IPC commands from renderer
+  ipcMain.handle('updater:quit-and-install', () => {
+    if (process.platform === 'darwin') {
+      if (downloadedMacDmgPath && fs.existsSync(downloadedMacDmgPath)) {
+        shell.openPath(downloadedMacDmgPath);
+        app.quit();
+        return;
+      }
+    }
+    autoUpdater.quitAndInstall();
+  });
+
+  ipcMain.handle('updater:start-mac-download', (_event, version) => {
+    return startMacDmgDownload(version);
+  });
+
+  ipcMain.handle('updater:open-mac-download', async (_event, version) => {
+    try {
+      const targetVer = version || lastAvailableVersion;
+      const { asset } = await getReleaseAsset(targetVer, process.arch);
+      if (asset) {
+        const signedUrl = await getSignedDownloadUrl(asset);
+        if (signedUrl) {
+          console.log('[AutoUpdater] Opening pre-signed download URL in browser (no GitHub login required)');
+          shell.openExternal(signedUrl);
+          return { status: 'ok' };
+        }
+      }
+    } catch (err) {
+      console.error('[AutoUpdater] Failed to get signed download URL for browser:', err);
+    }
+    // Fallback: start in-app download directly
+    return startMacDmgDownload(version);
+  });
 }
 
 // IPC Handlers for communication with the renderer process
@@ -265,19 +501,6 @@ ipcMain.handle('updater:check', async () => {
     }
     return { status: 'error', message: msg };
   }
-});
-
-ipcMain.handle('updater:quit-and-install', () => {
-  autoUpdater.quitAndInstall();
-});
-
-ipcMain.handle('updater:open-mac-download', (_event, version) => {
-  const targetVer = version || lastAvailableVersion;
-  const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-  const url = targetVer
-    ? `https://github.com/savindu19990928/AvenorSystemFE/releases/download/v${targetVer}/Avenor-System-${targetVer}-${arch}.dmg`
-    : 'https://github.com/savindu19990928/AvenorSystemFE/releases/latest';
-  shell.openExternal(url);
 });
 
 function createWindow() {

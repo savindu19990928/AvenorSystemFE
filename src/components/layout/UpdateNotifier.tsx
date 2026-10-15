@@ -48,7 +48,7 @@ export function UpdateNotifier() {
                 )}
               </div>
               <p className="text-xs text-muted">
-                A new version is ready for macOS. Click below to download the latest DMG installer.
+                A new version is ready for macOS. Click below to download the latest DMG installer directly.
               </p>
             </div>
           </div>
@@ -62,22 +62,38 @@ export function UpdateNotifier() {
           </button>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-1 border-t border-line/50">
-          <button
-            type="button"
-            onClick={() => setDismissed(true)}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted hover:bg-canvas hover:text-ink transition-colors"
-          >
-            Later
-          </button>
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-line/50">
           <button
             type="button"
             onClick={() => window.electron?.openMacDownload?.(status.version)}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+            className="text-[11px] text-blue-600 hover:underline"
+            title="Download via default web browser"
           >
-            <DownloadCloudIcon className="h-3.5 w-3.5" />
-            Download DMG & Update
+            Browser download
           </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted hover:bg-canvas hover:text-ink transition-colors"
+            >
+              Later
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.electron?.startMacDownload) {
+                  window.electron.startMacDownload(status.version);
+                } else {
+                  window.electron?.openMacDownload?.(status.version);
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+            >
+              <DownloadCloudIcon className="h-3.5 w-3.5" />
+              Download DMG & Update
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -86,6 +102,9 @@ export function UpdateNotifier() {
   // Downloading status notification
   if (status.status === 'downloading') {
     const percent = status.percent ?? 0;
+    const mbTransferred = status.transferred ? Math.round(status.transferred / 1024 / 1024) : null;
+    const mbTotal = status.total ? Math.round(status.total / 1024 / 1024) : null;
+
     return (
       <div className="fixed bottom-5 right-5 z-50 flex w-80 flex-col gap-2 rounded-xl border border-line bg-surface p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between">
@@ -93,7 +112,9 @@ export function UpdateNotifier() {
             <DownloadCloudIcon className="h-4 w-4 animate-bounce text-accent" />
             <span className="text-xs font-semibold">Downloading Update</span>
           </div>
-          <span className="text-xs font-medium text-muted">{percent}%</span>
+          <span className="text-xs font-medium text-muted">
+            {percent}%{mbTotal ? ` (${mbTransferred || 0}/${mbTotal}MB)` : ''}
+          </span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-canvas">
           <div
@@ -102,7 +123,7 @@ export function UpdateNotifier() {
           />
         </div>
         <p className="text-[11px] text-muted">
-          A new version is downloading in the background...
+          Downloading new version in the background without needing browser login...
         </p>
       </div>
     );
@@ -110,6 +131,7 @@ export function UpdateNotifier() {
 
   // Downloaded status notification - Ready to Install!
   if (status.status === 'downloaded') {
+    const isMac = Boolean(window.electron?.isMac || status.isMac);
     return (
       <div className="fixed bottom-5 right-5 z-50 flex w-96 flex-col gap-3 rounded-xl border border-emerald-500/20 bg-surface p-4 shadow-2xl backdrop-blur-md ring-1 ring-emerald-500/10">
         <div className="flex items-start justify-between gap-2">
@@ -119,7 +141,9 @@ export function UpdateNotifier() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-semibold text-ink">Update Ready</h4>
+                <h4 className="text-sm font-semibold text-ink">
+                  {isMac ? 'macOS Update Ready' : 'Update Ready'}
+                </h4>
                 {status.version && (
                   <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
                     v{status.version}
@@ -127,7 +151,9 @@ export function UpdateNotifier() {
                 )}
               </div>
               <p className="text-xs text-muted">
-                Restart to apply updates, or it will automatically apply when you close the app.
+                {isMac
+                  ? 'DMG installer has been downloaded. Click below to open and drag into Applications.'
+                  : 'Restart to apply updates, or it will automatically apply when you close the app.'}
               </p>
             </div>
           </div>
@@ -155,7 +181,7 @@ export function UpdateNotifier() {
             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
           >
             <RefreshCwIcon className="h-3.5 w-3.5" />
-            Restart & Update Now
+            {isMac ? 'Open DMG Installer' : 'Restart & Update Now'}
           </button>
         </div>
       </div>
