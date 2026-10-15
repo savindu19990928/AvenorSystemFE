@@ -48,7 +48,7 @@ export function Dashboard() {
           <StateMessage kind="loading" /> :
           alerts.error ?
           <StateMessage kind="error" message={alerts.error} onRetry={alerts.reload} /> :
-          !alerts.data || alerts.data.alerts.length === 0 ?
+          !alerts.data || !alerts.data.alerts || alerts.data.alerts.length === 0 ?
           <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted">
               <CheckCircle2Icon className="h-5 w-5 text-ok" aria-hidden="true" />
               All clear — nothing is waiting on your team right now.

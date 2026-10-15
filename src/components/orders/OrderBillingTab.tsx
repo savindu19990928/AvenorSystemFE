@@ -18,6 +18,7 @@ import { GenerateInvoiceModal } from '../workflow/GenerateInvoiceModal';
 import { ExpenseFormModal } from '../workflow/ExpenseFormModal';
 import { InvoicePrintModal } from '../documents/InvoicePrintModal';
 import { ReceiptPrintModal } from '../documents/ReceiptPrintModal';
+import { BillPrintModal } from '../documents/BillPrintModal';
 
 export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChanged: () => void;}) {
   const { hasRole } = useAuth();
@@ -27,6 +28,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
   const [expensing, setExpensing] = useState(false);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
   const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
+  const [printBill, setPrintBill] = useState<Bill | null>(null);
   const [receipt, setReceipt] = useState<Payment | null>(null);
   const [autoMode, setAutoMode] = useState<AutoPaymentMode | null>(null);
   const { run, pending } = useAction();
@@ -147,6 +149,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
                     </span>
               }
                 </span>
+                <Button size="sm" variant="ghost" icon={PrinterIcon} onClick={() => setPrintBill(b)}>Print</Button>
               </li>
           )}
           </ul>
@@ -191,6 +194,7 @@ export function OrderBillingTab({ order, onChanged }: {order: OrderDetail;onChan
       <ConvertInvoiceModal invoice={converting} onClose={() => setConverting(null)} onDone={() => {setConverting(null);refresh();}} />
       <ExpenseFormModal open={expensing} order={ref} onClose={() => setExpensing(false)} onDone={() => {setExpensing(false);refresh();}} />
       <InvoicePrintModal invoice={printInvoice} onClose={() => setPrintInvoice(null)} />
+      <BillPrintModal bill={printBill} onClose={() => setPrintBill(null)} />
       <ReceiptPrintModal payment={receipt} order={order} onClose={() => setReceipt(null)} />
       <ConfirmDialog
         open={!!cancelling}
