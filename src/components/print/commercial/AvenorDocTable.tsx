@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatAmount, formatNumber, itemVariant, sizeRange, toNumber } from '../../../utils/format';
+import { formatAmount, formatNumber, itemVariant, resolveDeliveryType, sizeRange, toNumber } from '../../../utils/format';
 import { cx } from '../../../utils/styles';
 
 export interface AvenorDocTableItem {
@@ -37,6 +37,7 @@ export interface AvenorDocTableProps {
   minRows?: number;
   paymentTerms?: string;
   deliveryNotes?: string;
+  deliveryLocation?: string;
 }
 
 export function AvenorDocTable({
@@ -49,8 +50,10 @@ export function AvenorDocTable({
   extraRows = [],
   minRows = 5,
   paymentTerms,
-  deliveryNotes
+  deliveryNotes,
+  deliveryLocation
 }: AvenorDocTableProps) {
+  const deliveryType = resolveDeliveryType(deliveryLocation, deliveryNotes);
   const discountVal = toNumber(discount);
   const taxVal = toNumber(tax);
   const taxRateVal = toNumber(taxRatePercent);
@@ -251,14 +254,8 @@ export function AvenorDocTable({
           <ul className="mt-1.5 space-y-1 text-ink font-medium">
             <li className="flex items-start gap-1.5">
               <span className="text-[#c6a04a] font-bold">•</span>
-              <span>Delivery charges apply unless otherwise agreed.</span>
+              <span>Delivery Type: <strong className="text-[#0a1d44] font-bold">{deliveryType}</strong></span>
             </li>
-            {deliveryNotes && (
-              <li className="flex items-start gap-1.5">
-                <span className="text-[#c6a04a] font-bold">•</span>
-                <span>{deliveryNotes}</span>
-              </li>
-            )}
           </ul>
         </div>
       </div>

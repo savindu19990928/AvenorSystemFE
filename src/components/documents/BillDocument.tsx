@@ -85,7 +85,12 @@ export function BillDocument({ bill, order, brand }: BillDocumentProps) {
         extraRows={extraRows}
         minRows={5}
         paymentTerms={paymentTermsText}
-        deliveryNotes="Delivery will be arranged islandwide upon production clearance."
+        deliveryLocation={
+          order?.delivery_address ||
+          (order as any)?.delivery_location ||
+          (bill as any)?.delivery_location ||
+          bill.notes
+        }
       />
     </AvenorCommercialLayout>
   );

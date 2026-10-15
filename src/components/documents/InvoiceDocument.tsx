@@ -87,11 +87,6 @@ export function InvoiceDocument({ invoice, order, brand }: InvoiceDocumentProps)
         ? `Remaining balance of Rs. ${formatAmount(balance)} is due by ${formatLongDate(invoice.due_date)}.`
         : '60% Advance Payment required on confirmation. Remainder on delivery.');
 
-  const deliveryNotesText =
-    order?.delivery_address
-      ? `Delivery to: ${order.delivery_address}`
-      : 'Islandwide courier delivery will be arranged upon order readiness.';
-
   return (
     <AvenorCommercialLayout
       documentTitle="INVOICE"
@@ -118,7 +113,13 @@ export function InvoiceDocument({ invoice, order, brand }: InvoiceDocumentProps)
         extraRows={extraRows}
         minRows={5}
         paymentTerms={paymentTermsText}
-        deliveryNotes={deliveryNotesText}
+        deliveryLocation={
+          order?.delivery_address ||
+          (order as any)?.delivery_location ||
+          (invoice as any).delivery_location ||
+          (invoice as any).delivery_address ||
+          invoice.notes
+        }
       />
 
       {/* Payments History (if payments were recorded) */}

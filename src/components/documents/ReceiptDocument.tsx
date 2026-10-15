@@ -128,7 +128,12 @@ export function ReceiptDocument({ payment: p, order, brand }: ReceiptDocumentPro
         extraRows={extraRows}
         minRows={5}
         paymentTerms={paymentTermsText}
-        deliveryNotes="Delivery will be dispatched upon full payment clearance and order completion."
+        deliveryLocation={
+          order?.delivery_address ||
+          (order as any)?.delivery_location ||
+          (p as any)?.delivery_location ||
+          (p as any)?.delivery_address
+        }
       />
     </AvenorCommercialLayout>
   );

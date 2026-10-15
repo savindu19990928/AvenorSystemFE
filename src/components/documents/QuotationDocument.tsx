@@ -4,8 +4,18 @@ import type { BrandIdentity } from '../../types/print';
 import { formatLongDate, toNumber } from '../../utils/format';
 import { AvenorCommercialLayout } from '../print/commercial/AvenorCommercialLayout';
 import { AvenorDocTable, type AvenorDocTableItem, type ExtraTotalRow } from '../print/commercial/AvenorDocTable';
+import { ZevoraQuotationDocument } from './ZevoraQuotationDocument';
 
 export function QuotationDocument({ quotation: q, brand }: { quotation: Quotation; brand: BrandIdentity }) {
+  const isZevora =
+    brand.code?.toLowerCase() === 'zvr' ||
+    (brand.name || '').toLowerCase().includes('zevora') ||
+    (q.brand_name || '').toLowerCase().includes('zevora');
+
+  if (isZevora) {
+    return <ZevoraQuotationDocument quotation={q} brand={brand} />;
+  }
+
   const items: AvenorDocTableItem[] = (q.items ?? []).map((i) => ({
     id: i.id,
     product_name: i.product_name,
@@ -67,7 +77,7 @@ export function QuotationDocument({ quotation: q, brand }: { quotation: Quotatio
         extraRows={extraRows}
         minRows={5}
         paymentTerms={q.payment_terms}
-        deliveryNotes="Delivery will be arranged islandwide upon production completion."
+        deliveryLocation={(q as any).delivery_location || (q as any).delivery_address || q.notes}
       />
     </AvenorCommercialLayout>
   );

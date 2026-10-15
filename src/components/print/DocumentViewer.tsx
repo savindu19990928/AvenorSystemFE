@@ -15,9 +15,10 @@ interface DocumentViewerProps {
   error?: string | null;
   onRetry?: () => void;
   children?: React.ReactNode;
+  size?: 'md' | 'lg' | 'xl' | '2xl';
 }
 
-export function DocumentViewer({ open, onClose, title, filename, loading, error, onRetry, children }: DocumentViewerProps) {
+export function DocumentViewer({ open, onClose, title, filename, loading, error, onRetry, children, size = 'xl' }: DocumentViewerProps) {
   const paperRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<'pdf' | 'print' | null>(null);
   const ready = !loading && !error && !!children;
@@ -44,7 +45,7 @@ export function DocumentViewer({ open, onClose, title, filename, loading, error,
     <Modal
       open={open}
       onClose={onClose}
-      size="xl"
+      size={size}
       title={title}
       description="Preview of the A4 document"
       footer={

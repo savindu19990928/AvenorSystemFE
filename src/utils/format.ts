@@ -139,3 +139,24 @@ export function todayISO(offsetDays = 0): string {
   d.setDate(d.getDate() + offsetDays);
   return format(d, 'yyyy-MM-dd');
 }
+
+/**
+ * Resolves delivery type for quotations, invoices, bills, and payment records.
+ * If the location/address/notes contains 'pickup' or 'pick up' (case-insensitive), returns 'Pick Up'.
+ * Otherwise returns 'Delivery'.
+ */
+export function resolveDeliveryType(...locations: (string | null | undefined)[]): 'Pick Up' | 'Delivery' {
+  for (const loc of locations) {
+    if (!loc || typeof loc !== 'string') continue;
+    const clean = loc.trim().toLowerCase();
+    if (
+      clean === 'pickup' ||
+      clean === 'pick up' ||
+      clean.replace(/[\s-_]/g, '') === 'pickup' ||
+      /\bpick[\s-_]?up\b/i.test(clean)
+    ) {
+      return 'Pick Up';
+    }
+  }
+  return 'Delivery';
+}

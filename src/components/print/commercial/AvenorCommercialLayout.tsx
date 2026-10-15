@@ -223,12 +223,12 @@ export function AvenorCommercialLayout({
       <div className="mt-3.5 px-10 flex-1">
         {children}
 
-        {notes && (
+        {/* {notes && (
           <div className="mt-3 rounded-[2px] border border-[#d2dbe8] bg-[#f8fbfe] p-2.5 text-[10.5px] leading-relaxed">
             <strong className="font-bold text-[#0a1d44] uppercase tracking-wide">Special Instructions:</strong>{' '}
             <span className="text-ink">{notes}</span>
           </div>
-        )}
+        )} */}
       </div>
 
       <div className="min-h-[16px] flex-1" />

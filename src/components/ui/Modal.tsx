@@ -10,10 +10,10 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  size?: 'md' | 'lg' | 'xl';
+  size?: 'md' | 'lg' | 'xl' | '2xl';
 }
 
-const widths = { md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-5xl' };
+const widths = { md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-5xl', '2xl': 'max-w-[1240px]' };
 const ease = [0.23, 1, 0.32, 1] as const;
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {

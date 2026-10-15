@@ -27,6 +27,7 @@ import { ProfitPage } from './pages/finance/Profit';
 import { ReportsPage } from './pages/finance/Reports';
 import { UsersPage } from './pages/admin/Users';
 import { AuditLogPage } from './pages/admin/AuditLog';
+import { DocumentPreviewPage } from './pages/DocumentPreviewPage';
 
 function ProtectedApp() {
   const { status } = useAuth();
@@ -57,6 +58,7 @@ export function App() {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
+          <Route path="/doc-preview" element={<DocumentPreviewPage />} />
           <Route element={<ProtectedApp />}>
             <Route index element={<Dashboard />} />
             <Route path="notifications" element={<Notifications />} />
