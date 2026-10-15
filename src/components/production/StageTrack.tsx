@@ -31,6 +31,18 @@ export function StageTrack({ stages, canAct, onStart, onComplete, onAddWip }: St
         const pct = target ? Math.min(100, s.completed_quantity / target * 100) : s.status === 'COMPLETED' ? 100 : 0;
         const extraMade = s.extra_pieces ?? s.extra_quantity ?? 0;
         const stored = s.semi_finished_count ?? s.quantity_to_inventory ?? 0;
+        const prevDamaged = prev?.damaged_quantity ?? 0;
+        const prevExtra = prev?.extra_pieces ?? prev?.extra_quantity ?? 0;
+        const hasDeficit = Boolean(prev && prev.status === 'COMPLETED' && prevDamaged > prevExtra);
+        const damageBeyondExtra = hasDeficit ? prevDamaged - prevExtra : 0;
+        const needed = prev?.target_quantity ?? s.target_quantity ?? 0;
+        const currentInput = s.input_quantity ?? (prev?.quantity_to_next_stage ?? Math.max(0, needed - damageBeyondExtra));
+        const missingCount = s.missing_quantity !== undefined && s.missing_quantity !== null
+          ? s.missing_quantity
+          : hasDeficit
+          ? Math.max(0, needed - currentInput)
+          : 0;
+
         const canAddWip = canAct && !!onAddWip && !!s.id && (s.status === 'PENDING' || s.status === 'IN_PROGRESS') && stagesBefore(s.stage_name).length > 0;
         return (
           <li
@@ -64,6 +76,16 @@ export function StageTrack({ stages, canAct, onStart, onComplete, onAddWip }: St
                 </p>
               </>
             }
+            {hasDeficit && missingCount > 0 && s.status !== 'COMPLETED' && (
+              <p className="mt-1 inline-flex items-center gap-1 rounded bg-warn-soft/80 px-1.5 py-0.5 text-[10px] font-semibold text-warn">
+                ⚠️ {missingCount} missing pieces (deficit)
+              </p>
+            )}
+            {hasDeficit && missingCount === 0 && s.status !== 'COMPLETED' && (
+              <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-ok">
+                ✓ Missing pieces fulfilled
+              </p>
+            )}
             {(stored > 0 || extraMade > 0) &&
             <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-accent">
                 <ArchiveIcon className="h-3 w-3 shrink-0" aria-hidden /> {formatNumber(stored)} semi-finished stored
@@ -80,8 +102,14 @@ export function StageTrack({ stages, canAct, onStart, onComplete, onAddWip }: St
               {canStart && <Button size="sm" icon={PlayIcon} className="w-full" onClick={() => onStart(s)}>Start</Button>}
               {canComplete && <Button size="sm" variant="primary" icon={FlagIcon} className="w-full" onClick={() => onComplete(s, next)}>Complete</Button>}
               {canAddWip &&
-              <Button size="sm" variant="ghost" icon={PackagePlusIcon} className="w-full" onClick={() => onAddWip?.(s)}>
-                  Add stored stock
+              <Button
+                size="sm"
+                variant={missingCount > 0 ? "secondary" : "ghost"}
+                icon={PackagePlusIcon}
+                className="w-full"
+                onClick={() => onAddWip?.(s)}
+              >
+                  {missingCount > 0 ? `Add stock (${missingCount} needed)` : 'Add stored stock'}
                 </Button>
               }
             </div>

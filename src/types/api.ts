@@ -269,14 +269,20 @@ export type StageName = 'CUTTING' | 'PRINTING' | 'EMBROIDERY' | 'SEWING' | 'FINI
 
 export interface WipItem {
   id: number;
+  stock_id?: string;
+  wip_id?: string;
   product: number;
   product_name: string;
   brand: number;
   brand_name: string;
   sku: string;
   colour: string;
+  colours?: string[];
+  colors?: string[];
   size: string;
+  sizes?: string[];
   fabric_gsm?: string;
+  printing_method?: string;
   stage_completed: StageName;
   stage_completed_display?: string;
   quantity_on_hand: number;
@@ -286,16 +292,20 @@ export interface WipItem {
   source_order_code?: string | null;
   notes?: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductionStage {
   id?: number;
+  production_job?: number;
   stage_name: string;
   quantity_to_inventory?: number;
   semi_finished_count?: number;
   extra_pieces?: number;
   extra_quantity?: number;
   quantity_to_next_stage?: number;
+  input_quantity?: number;
+  missing_quantity?: number;
   stage_name_display?: string;
   sequence_order?: number;
   target_quantity?: number;
@@ -306,6 +316,7 @@ export interface ProductionStage {
   assigned_staff_name?: string;
   start_time?: string;
   completion_time?: string;
+  notes?: string;
 }
 
 export interface ProductionJob {

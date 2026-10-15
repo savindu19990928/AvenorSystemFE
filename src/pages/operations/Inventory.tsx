@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangleIcon, PackagePlusIcon, BanIcon, ArrowRightIcon } from 'lucide-react';
+import { AlertTriangleIcon, PackagePlusIcon, BanIcon, ArrowRightIcon, SlidersHorizontalIcon, SearchIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBrands } from '../../contexts/BrandContext';
 import { useApi } from '../../hooks/useApi';
@@ -7,6 +7,7 @@ import { api } from '../../utils/api';
 import type { DamagedStock, InventoryItem, StockMovement, StockReservation, WipItem } from '../../types/api';
 import { stageLabel, stagesAfter } from '../../utils/production';
 import { WipAllocateModal } from '../../components/inventory/WipAllocateModal';
+import { WipEditSpecsModal } from '../../components/inventory/WipEditSpecsModal';
 import { formatDateTime, formatMoney, formatNumber, humanize } from '../../utils/format';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel } from '../../components/ui/Panel';
@@ -16,7 +17,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { BrandTag } from '../../components/ui/BrandTag';
 import { Tabs } from '../../components/ui/Tabs';
 import { StockAdjustModal } from '../../components/inventory/StockAdjustModal';
-import { cx } from '../../utils/styles';
+import { cx, inputClass } from '../../utils/styles';
 
 type Tab = 'stock' | 'wip' | 'reservations' | 'movements' | 'damaged';
 
@@ -28,6 +29,8 @@ export function InventoryPage() {
   const [lowOnly, setLowOnly] = useState(false);
   const [adjust, setAdjust] = useState<{item: InventoryItem;mode: 'receive' | 'damaged';} | null>(null);
   const [allocating, setAllocating] = useState<WipItem | null>(null);
+  const [editingSpecs, setEditingSpecs] = useState<WipItem | null>(null);
+  const [wipSearch, setWipSearch] = useState('');
   const canAllocate = hasRole('ADMIN', 'STORE_KEEPER', 'PRODUCTION');
   const wip = useApi(() => tab === 'wip' ? api.list<WipItem>('/api/inventory/wip/', { brand: scope }) : Promise.resolve(null), [tab, scope]);
 
@@ -124,29 +127,109 @@ export function InventoryPage() {
 
         {tab === 'wip' &&
         <>
-            <p className="border-b border-line px-4 py-3 text-sm text-muted">
-              Extra units stored after a production step. Use them in an order to skip the steps already done.
-            </p>
+            <div className="flex flex-col gap-2 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-ink">
+                  Semi-Finished (WIP) Inventory
+                </p>
+                <p className="text-xs text-muted">
+                  Surplus units stored after production steps with auto-generated IDs and Quotation Item specifications.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <SearchIcon className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted" />
+                <input
+                  type="text"
+                  placeholder="Search stock ID, SKU, spec…"
+                  className={cx(inputClass, 'py-1 pl-8 text-xs')}
+                  value={wipSearch}
+                  onChange={(e) => setWipSearch(e.target.value)}
+                />
+              </div>
+            </div>
             <DataTable
-            rows={wip.data?.filter((w) => !scope || w.brand === scope) ?? null}
+            rows={
+              (wip.data?.filter((w) => !scope || w.brand === scope) ?? null)?.filter((w) => {
+                if (!wipSearch.trim()) return true;
+                const q = wipSearch.toLowerCase();
+                return (
+                  (w.stock_id && w.stock_id.toLowerCase().includes(q)) ||
+                  (w.wip_id && w.wip_id.toLowerCase().includes(q)) ||
+                  (w.sku && w.sku.toLowerCase().includes(q)) ||
+                  (w.product_name && w.product_name.toLowerCase().includes(q)) ||
+                  (w.colour && w.colour.toLowerCase().includes(q)) ||
+                  (w.colours && w.colours.some((c) => c.toLowerCase().includes(q))) ||
+                  (w.size && w.size.toLowerCase().includes(q)) ||
+                  (w.sizes && w.sizes.some((s) => s.toLowerCase().includes(q))) ||
+                  (w.fabric_gsm && w.fabric_gsm.toLowerCase().includes(q)) ||
+                  (w.printing_method && w.printing_method.toLowerCase().includes(q)) ||
+                  (w.notes && w.notes.toLowerCase().includes(q))
+                );
+              })
+            }
             loading={wip.loading}
             error={wip.error}
             onRetry={wip.reload}
             getRowKey={(w) => w.id}
-            emptyTitle="No semi-finished stock"
+            emptyTitle={wipSearch ? 'No matching semi-finished stock' : 'No semi-finished stock'}
             columns={[
             {
               key: 'sku',
-              header: 'Item',
-              render: (w) =>
-              <div>
-                      <p className="font-medium">{w.product_name}</p>
-                      <p className="font-mono text-xs text-muted">{w.sku}</p>
-                    </div>
-
+              header: 'Item & Stock ID',
+              render: (w) => (
+                <div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-xs font-semibold text-accent">
+                      {w.stock_id || w.wip_id || `WIP-${w.id}`}
+                    </span>
+                    <span className="font-medium text-ink">{w.product_name}</span>
+                  </div>
+                  <p className="mt-0.5 font-mono text-[11px] text-faint">{w.sku}</p>
+                </div>
+              )
             },
             { key: 'brand', header: 'Brand', render: (w) => <BrandTag name={w.brand_name} /> },
-            { key: 'spec', header: 'Colour / size', render: (w) => <span className="text-muted">{w.colour} · {w.size}{w.fabric_gsm ? ` · ${w.fabric_gsm}` : ''}</span> },
+            {
+              key: 'spec',
+              header: 'Specifications',
+              render: (w) => {
+                const colourText = w.colours && w.colours.length ? w.colours.join(', ') : w.colour;
+                const sizeText = w.sizes && w.sizes.length ? w.sizes.join(', ') : w.size;
+                const hasSpecs = colourText || sizeText || w.fabric_gsm || w.printing_method;
+
+                if (!hasSpecs) {
+                  return (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs italic text-faint">None specified</span>
+                      {canAllocate && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingSpecs(w)}
+                          className="text-[11px] font-medium text-accent hover:underline"
+                        >
+                          + Add
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-0.5 text-xs">
+                    <p className="text-ink">
+                      {colourText ? <span className="font-medium">{colourText}</span> : <span className="text-faint">Any colour</span>}
+                      {' · '}
+                      {sizeText ? <span>{sizeText}</span> : <span className="text-faint">Any size</span>}
+                    </p>
+                    {(w.fabric_gsm || w.printing_method) && (
+                      <p className="text-[11px] text-muted">
+                        {[w.fabric_gsm, w.printing_method].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+            },
             {
               key: 'stage',
               header: 'Finished step',
@@ -154,10 +237,10 @@ export function InventoryPage() {
                 const next = stagesAfter(w.stage_completed)[0];
                 return (
                   <div>
-                        <p className="font-medium">{w.stage_completed_display ?? stageLabel(w.stage_completed)}</p>
-                        <p className="text-xs text-muted">{next ? `Can start from ${stageLabel(next)}` : 'Finished goods'}</p>
-                      </div>);
-
+                    <p className="font-medium">{w.stage_completed_display ?? stageLabel(w.stage_completed)}</p>
+                    <p className="text-xs text-muted">{next ? `Can start from ${stageLabel(next)}` : 'Finished goods'}</p>
+                  </div>
+                );
               }
             },
             { key: 'src', header: 'From order', render: (w) => <span className="font-mono text-xs text-muted">{w.source_order_code || '—'}</span> },
@@ -170,13 +253,28 @@ export function InventoryPage() {
               key: 'act',
               header: '',
               align: 'right' as const,
-              render: (w: WipItem) =>
-              <Button size="sm" icon={ArrowRightIcon} disabled={w.available_quantity <= 0} onClick={() => setAllocating(w)}>
-                            Use in order
-                          </Button>
-
+              render: (w: WipItem) => (
+                <div className="flex items-center justify-end gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={SlidersHorizontalIcon}
+                    onClick={() => setEditingSpecs(w)}
+                    title="Edit Specifications (Colours, Sizes, GSM, Printing Method)"
+                  >
+                    Specs
+                  </Button>
+                  <Button
+                    size="sm"
+                    icon={ArrowRightIcon}
+                    disabled={w.available_quantity <= 0}
+                    onClick={() => setAllocating(w)}
+                  >
+                    Use in order
+                  </Button>
+                </div>
+              )
             }] :
-
             [])]
             } />
           
@@ -253,6 +351,14 @@ export function InventoryPage() {
         onClose={() => setAllocating(null)}
         onDone={() => {
           setAllocating(null);
+          wip.reload();
+        }} />
+      
+      <WipEditSpecsModal
+        item={editingSpecs}
+        onClose={() => setEditingSpecs(null)}
+        onDone={() => {
+          setEditingSpecs(null);
           wip.reload();
         }} />
       

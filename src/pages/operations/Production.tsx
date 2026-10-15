@@ -109,6 +109,7 @@ export function ProductionPage() {
       </Modal>
       <AddWipToStageModal
         stage={wip?.s ?? null}
+        stages={wip?.job.stages}
         orderCode={wip?.job.order_code}
         brandName={wip?.job.brand_name}
         onClose={() => setWip(null)}

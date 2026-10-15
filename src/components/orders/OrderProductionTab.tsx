@@ -71,6 +71,7 @@ export function OrderProductionTab({ order, onChanged }: {order: OrderDetail;onC
       
       <AddWipToStageModal
         stage={wipStage}
+        stages={job?.stages}
         orderCode={order.order_id}
         brandId={order.brand}
         brandName={order.brand_name}

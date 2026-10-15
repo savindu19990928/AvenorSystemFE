@@ -129,10 +129,16 @@ export function StageActionModal({ stage, next = null, mode, onClose, onDone }: 
                   </span>
                 </div>
                 {damageBeyondExtra > 0 &&
-            <p className="border-t border-line bg-warn-soft/60 px-3 py-2 text-xs text-warn">
-                    Damage exceeds extras by {formatNumber(damageBeyondExtra)} — nothing is stored. Make sure “Pieces for this order” counts good pieces only.
-                  </p>
-            }
+                  <div className="border-t border-line bg-warn-soft/60 px-3 py-2 text-xs text-warn space-y-1">
+                    <p className="font-semibold">
+                      Damage exceeds extras by {formatNumber(damageBeyondExtra)} (Net deficit: {formatNumber(damageBeyondExtra)} items) — nothing is stored into WIP inventory.
+                    </p>
+                    <p>
+                      {nextName ? `${nextName} will have a shortfall of ${formatNumber(damageBeyondExtra)} items.` : 'Shortfall of items for delivery.'}
+                      {' '}Under stock balancing rules, only this missing count ({formatNumber(damageBeyondExtra)}) can be brought from semi-finished stocks into {nextName || 'the next step'}.
+                    </p>
+                  </div>
+                }
               </section>
           }
 

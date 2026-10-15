@@ -45,12 +45,21 @@ export function WipAllocateModal({ item, onClose, onDone }: WipAllocateModalProp
     if (res !== undefined) onDone();
   };
 
+  const autoId = item?.stock_id || item?.wip_id;
+  const colourText = item?.colours && item.colours.length ? item.colours.join(', ') : item?.colour;
+  const sizeText = item?.sizes && item.sizes.length ? item.sizes.join(', ') : item?.size;
+  const specs = [colourText, sizeText, item?.fabric_gsm, item?.printing_method].filter(Boolean).join(' · ');
+
   return (
     <Modal
       open={!!item}
       onClose={onClose}
       title="Use stored stock in an order"
-      description={item ? `${item.product_name} · ${item.colour} · ${item.size} — finished ${stageLabel(item.stage_completed)}, ${formatNumber(item.available_quantity)} available.` : undefined}
+      description={
+        item
+          ? `${autoId ? `${autoId} · ` : ''}${item.product_name}${specs ? ` (${specs})` : ''} — finished ${stageLabel(item.stage_completed)}, ${formatNumber(item.available_quantity)} available.`
+          : undefined
+      }
       footer={
       <>
           <Button onClick={onClose}>Cancel</Button>

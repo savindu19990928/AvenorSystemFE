@@ -57,12 +57,24 @@ export function WipAllocationPicker({ brandId, config, value, onChange }: WipAll
           {rows.map((w) => {
           const id = `wip-qty-${w.id}`;
           const qty = value[w.id] ?? '';
+          const autoId = w.stock_id || w.wip_id;
+          const colourText = w.colours && w.colours.length ? w.colours.join(', ') : w.colour;
+          const sizeText = w.sizes && w.sizes.length ? w.sizes.join(', ') : w.size;
           return (
             <li key={w.id} className={cx('flex items-center gap-3 px-3 py-2', Number(qty) > 0 && 'bg-accent/5')}>
                 <div className="min-w-0 flex-1">
-                  <label htmlFor={id} className="block truncate text-sm font-medium text-ink">{w.product_name}</label>
-                  <p className="truncate text-xs text-muted">
-                    {w.colour} · {w.size}{w.fabric_gsm ? ` · ${w.fabric_gsm}` : ''} <span className="font-mono text-faint">· {w.sku}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {autoId && (
+                      <span className="rounded bg-accent/10 px-1.5 py-0.2 font-mono text-[11px] font-semibold text-accent">
+                        {autoId}
+                      </span>
+                    )}
+                    <label htmlFor={id} className="block truncate text-sm font-medium text-ink">{w.product_name}</label>
+                  </div>
+                  <p className="truncate text-xs text-muted mt-0.5">
+                    {colourText || 'Any colour'} · {sizeText || 'Any size'}
+                    {w.fabric_gsm ? ` · ${w.fabric_gsm}` : ''}
+                    {w.printing_method ? ` · ${w.printing_method}` : ''} <span className="font-mono text-faint">· {w.sku}</span>
                   </p>
                 </div>
                 <span className="whitespace-nowrap text-xs tabular-nums text-muted">{formatNumber(w.available_quantity)} available</span>
