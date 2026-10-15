@@ -87,26 +87,12 @@ export function AvenorCommercialLayout({
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-[15.5px] font-black uppercase leading-tight tracking-wider text-white drop-shadow-sm">
+              <p className="truncate text-[16px] font-black uppercase leading-tight tracking-wider text-white drop-shadow-sm">
                 AVENOR APPAREL (PVT) LTD
               </p>
-              <p className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-widest text-[#f6c87a]">
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#f6c87a]">
                 {company.tagline.join('  |  ')}
               </p>
-
-              {/* Sub Brand Mention with its logo */}
-              <div className="mt-1 flex items-center gap-1.5 rounded-sm bg-white/10 px-2 py-0.5 border border-white/20 w-fit backdrop-blur-xs">
-                {subBrand.logo && (
-                  <img
-                    src={subBrand.logo}
-                    alt={subBrand.name}
-                    className="h-3.5 w-auto max-w-[48px] object-contain brightness-0 invert"
-                  />
-                )}
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[#f6c87a]">
-                  Sub Brand: <span className="text-white font-extrabold">{subBrand.name}</span>
-                </span>
-              </div>
             </div>
           </div>
 
@@ -141,7 +127,7 @@ export function AvenorCommercialLayout({
       {/* ============================================================== */}
       {/* 2. METADATA ROW (Underline Format matching docx Table 0)        */}
       {/* ============================================================== */}
-      <div className="mt-5 flex items-center justify-between gap-4 px-10">
+      <div className="mt-4 flex items-center justify-between gap-4 px-10">
         {metaItems.map((meta, i) => (
           <div key={i} className="flex flex-1 items-baseline gap-2 min-w-0">
             <span className="text-[11.5px] font-bold text-ink whitespace-nowrap">{meta.label}</span>
@@ -155,12 +141,12 @@ export function AvenorCommercialLayout({
       </div>
 
       {/* ============================================================== */}
-      {/* 3. BILL FROM & BILL TO & SUB BRAND HIGHLIGHT                   */}
+      {/* 3. BILL FROM & BILL TO                                         */}
       {/* ============================================================== */}
-      <div className="mt-5 grid grid-cols-2 gap-8 px-10">
+      <div className="mt-4 grid grid-cols-2 gap-6 px-10">
         {/* Bill From */}
         <div className="rounded-[2px] border border-[#d2dbe8] bg-[#f8fbfe] p-3 text-[11px] leading-relaxed">
-          <p className="text-[11.5px] font-extrabold uppercase tracking-wider text-[#0a1d44]">Bill From:</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#0a1d44]">Bill From:</p>
           <div className="mt-1 space-y-0.5 text-ink">
             <p className="text-[12.5px] font-bold text-[#0a1d44]">AVENOR APPAREL (PVT) LTD</p>
             <p className="text-muted">{company.address}</p>
@@ -173,7 +159,7 @@ export function AvenorCommercialLayout({
 
         {/* Bill To */}
         <div className="rounded-[2px] border border-[#d2dbe8] bg-[#f8fbfe] p-3 text-[11px] leading-relaxed">
-          <p className="text-[11.5px] font-extrabold uppercase tracking-wider text-[#0a1d44]">Bill To:</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#0a1d44]">Bill To:</p>
           <div className="mt-1 space-y-0.5 text-ink">
             <p className="text-[12.5px] font-bold text-ink">
               {customerName || customerCompany || 'Valued Customer'}
@@ -191,34 +177,48 @@ export function AvenorCommercialLayout({
         </div>
       </div>
 
-      {/* Sub Brand Banner */}
-      <div className="mt-3 mx-10 flex items-center justify-between rounded-[2px] border border-[#d2dbe8] bg-[#edf3f9] px-3.5 py-2">
-        <div className="flex items-center gap-3">
-          {subBrand.logo && (
-            <div className="flex h-8 w-14 shrink-0 items-center justify-center rounded bg-white p-1 border border-[#cddfe9] shadow-2xs">
-              <img
-                src={subBrand.logo}
-                alt={subBrand.name}
-                className="max-h-full max-w-full object-contain"
-              />
+      {/* ============================================================== */}
+      {/* 4. SUB BRAND DEDICATED SECTION (Bigger Logo & Brand Name)      */}
+      {/* ============================================================== */}
+      <div className="mt-3 mx-10 rounded-[3px] border border-[#d2dbe8] border-l-4 border-l-[#c6a04a] bg-gradient-to-r from-[#f0f5fa] via-[#f8fbfe] to-[#edf3f9] px-4 py-3 shadow-2xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Sub Brand Logo - Bigger container with clear padding */}
+            {subBrand.logo && (
+              <div className="flex h-14 w-32 shrink-0 items-center justify-center rounded bg-white p-2 border border-[#cddfe9] shadow-xs">
+                <img
+                  src={subBrand.logo}
+                  alt={subBrand.name}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#c6a04a] block leading-none">
+                SUB BRAND / BRAND IDENTITY
+              </span>
+              <p className="text-[17px] font-black uppercase tracking-wider text-[#0a1d44] leading-tight mt-1 truncate">
+                {subBrand.name}
+              </p>
+              <p className="text-[10.5px] font-medium text-muted mt-0.5">
+                Official Registered Brand of Avenor Apparel (Pvt) Ltd &bull; Custom & Promotional Apparel
+              </p>
             </div>
-          )}
-          <div>
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted block leading-none">
-              Manufactured & Supplied Under Sub Brand:
+          </div>
+
+          {/* Right badge in sub brand section */}
+          <div className="hidden sm:flex flex-col items-end shrink-0 pl-4 border-l border-[#d2dbe8]">
+            <span className="inline-block rounded-xs bg-[#0a1d44] px-2.5 py-1 text-[9.5px] font-black uppercase tracking-widest text-[#f6c87a] shadow-xs">
+              OFFICIAL BRAND
             </span>
-            <span className="text-[12.5px] font-black text-[#0a1d44]">
-              {subBrand.name}
-            </span>
-            <span className="ml-2 text-[10px] text-muted italic">
-              (A Private Label & Custom Brand of Avenor Apparel (Pvt) Ltd)
-            </span>
+            <span className="text-[10px] font-medium text-muted mt-1">Quality Guaranteed</span>
           </div>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* 4. DOCUMENT BODY (Table from docx & Terms)                     */}
+      {/* 5. DOCUMENT BODY (Table from docx & Terms)                     */}
       {/* ============================================================== */}
       <div className="mt-3.5 px-10 flex-1">
         {children}
