@@ -123,7 +123,7 @@ export function UpdateNotifier() {
           />
         </div>
         <p className="text-[11px] text-muted">
-          Downloading new version in the background without needing browser login...
+          Downloading new version in the background
         </p>
       </div>
     );
