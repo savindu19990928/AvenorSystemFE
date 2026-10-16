@@ -16,13 +16,26 @@ This document explains the **1-Click Setup** and **Automatic Update System** for
   - Automatically launches the application right after installation.
   - Does NOT prompt for administrator elevation (installs into user application space).
 
-### 2. macOS (1-Click Package or DMG)
-- **Package Installer (`.pkg`)**:
-  - **File**: `Avenor-System-X.X.X-arm64.pkg` (Apple Silicon M1/M2/M3/M4) or `.pkg` (Intel)
-  - Double-click to open macOS’s native installer wizard, click "Install", and the app is placed directly in `/Applications` without any dragging!
+### 2. macOS (DMG Installation & Gatekeeper Note)
 - **Disk Image (`.dmg`)**:
-  - **File**: `Avenor-System-X.X.X-arm64.dmg` or `.dmg`
-  - Mount and drag `Avenor System` into the `/Applications` folder alias.
+  - **Apple Silicon (M1/M2/M3/M4)**: Download `Avenor-System-X.X.X-arm64.dmg`
+  - **Intel Macs**: Download `Avenor-System-X.X.X-x64.dmg`
+  - Mount the DMG and drag `Avenor System` into `/Applications`.
+
+> [!IMPORTANT]
+> **If macOS says *"“Avenor System” is damaged and can’t be opened"***:
+> This is macOS **Gatekeeper** blocking apps downloaded from the internet that are not signed with a paid Apple Developer certificate.
+> 
+> **To fix it instantly on your Mac:**
+> 1. Open **Terminal** (`Cmd + Space` -> type `Terminal`).
+> 2. Run this single command:
+>    ```bash
+>    xattr -cr "/Applications/Avenor System.app"
+>    ```
+> 3. Double-click **Avenor System** in `/Applications`. It will now launch smoothly!
+> 
+> *Alternatively on macOS Sonoma / Sequoia:*
+> Open **System Settings** → **Privacy & Security** → scroll to the bottom under **Security** → click **"Open Anyway"**.
 
 ---
 

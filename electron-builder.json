@@ -35,7 +35,7 @@
     ],
     "category": "public.app-category.business",
     "darkModeSupport": true,
-    "identity": null,
+    "identity": "-",
     "hardenedRuntime": false,
     "gatekeeperAssess": false
   },
