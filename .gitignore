@@ -7,17 +7,31 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies & build outputs
 node_modules
 dist
 dist-ssr
 release
+coverage
 *.local
+*.tsbuildinfo
 
-# Editor directories and files
+# Environment & local secrets
+.env
+.env.*
+!.env.example
+electron/github-token.txt
+*.pem
+*.p12
+*.pfx
+
+# Editor directories and OS files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.suo
 *.ntvs*
 *.njsproj

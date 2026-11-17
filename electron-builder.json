@@ -11,13 +11,13 @@
     {
       "provider": "github",
       "owner": "savindu19990928",
-      "repo": "AvenorSystemFE",
-      "private": true
+      "repo": "AvenorSystemFE"
     }
   ],
   "files": [
     "dist/**/*",
     "electron/**/*",
+    "!electron/github-token.txt",
     "package.json"
   ],
   "mac": {

@@ -22,71 +22,57 @@ autoUpdater.logger = {
   debug: (...args) => console.log('[AutoUpdater:debug]', ...args),
 };
 
-// Load GitHub token for private repository releases
 const fs = require('fs');
 
-function loadGitHubToken() {
-  let token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+const GITHUB_OWNER = 'savindu19990928';
+const GITHUB_REPO = 'AvenorSystemFE';
 
-  if (!token) {
-    const candidatePaths = [
-      path.join(__dirname, 'github-token.txt'),
-      path.join(process.resourcesPath, 'github-token.txt'),
-      path.join(process.resourcesPath, 'electron', 'github-token.txt'),
-    ];
-    for (const tokenPath of candidatePaths) {
-      try {
-        if (fs.existsSync(tokenPath)) {
-          token = fs.readFileSync(tokenPath, 'utf8').trim();
-          console.log('[AutoUpdater] Loaded GitHub token from:', tokenPath);
-          break;
-        }
-      } catch (err) {
-        // continue searching
-      }
-    }
-    if (!token) {
-      console.warn('[AutoUpdater] github-token.txt not found in expected locations');
-    }
-  }
+function getOptionalGitHubToken() {
+  return process.env.GH_TOKEN || process.env.GITHUB_TOKEN || null;
+}
 
+function getGitHubHeaders(accept) {
+  const headers = {
+    Accept: accept,
+    'User-Agent': 'AvenorSystem-Updater',
+  };
+  const token = getOptionalGitHubToken();
   if (token) {
-    process.env.GH_TOKEN = token;
-    process.env.GITHUB_TOKEN = token;
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function configureAutoUpdaterFeed() {
+  const token = getOptionalGitHubToken();
+  if (token) {
     autoUpdater.requestHeaders = {
       Authorization: `Bearer ${token}`,
     };
-
-    try {
-      autoUpdater.setFeedURL({
-        provider: 'github',
-        owner: 'savindu19990928',
-        repo: 'AvenorSystemFE',
-        private: true,
-        token: token,
-      });
-    } catch (err) {
-      console.error('[AutoUpdater] Failed to setFeedURL:', err);
-    }
   }
 
-  return token;
+  try {
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: GITHUB_OWNER,
+      repo: GITHUB_REPO,
+      private: false,
+      ...(token ? { token } : {}),
+    });
+  } catch (err) {
+    console.error('[AutoUpdater] Failed to setFeedURL:', err);
+  }
 }
 
-// Helpers for authenticated GitHub release asset resolution & pre-signed downloads
+// Helpers for GitHub public release asset resolution & downloads
 async function getReleaseAsset(version, arch = process.arch) {
-  const token = loadGitHubToken();
   const tag = version ? (version.startsWith('v') ? version : `v${version}`) : null;
   const endpoint = tag
-    ? `https://api.github.com/repos/savindu19990928/AvenorSystemFE/releases/tags/${tag}`
-    : 'https://api.github.com/repos/savindu19990928/AvenorSystemFE/releases/latest';
+    ? `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`
+    : `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 
   const res = await fetch(endpoint, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'AvenorSystem-Updater',
-    },
+    headers: getGitHubHeaders('application/vnd.github.v3+json'),
   });
   if (!res.ok) {
     throw new Error(`GitHub API returned HTTP ${res.status}`);
@@ -95,7 +81,7 @@ async function getReleaseAsset(version, arch = process.arch) {
   const isMac = process.platform === 'darwin';
   const targetArch = arch === 'arm64' ? 'arm64' : 'x64';
 
-  let asset = null;
+  let asset;
   if (isMac) {
     asset = data.assets.find((a) => a.name.includes(targetArch) && a.name.endsWith('.dmg'));
     if (!asset) {
@@ -108,21 +94,18 @@ async function getReleaseAsset(version, arch = process.arch) {
   return { asset, version: data.tag_name ? data.tag_name.replace(/^v/, '') : data.name };
 }
 
-async function getSignedDownloadUrl(asset) {
-  const token = loadGitHubToken();
+async function getReleaseDownloadUrl(asset) {
+  if (!getOptionalGitHubToken() && asset.browser_download_url) {
+    return asset.browser_download_url;
+  }
   const res = await fetch(asset.url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/octet-stream',
-      'User-Agent': 'AvenorSystem-Updater',
-    },
+    headers: getGitHubHeaders('application/octet-stream'),
     redirect: 'manual',
   });
   return res.headers.get('location') || asset.browser_download_url;
 }
 
-// Initial token load attempt
-loadGitHubToken();
+configureAutoUpdaterFeed();
 
 function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
@@ -134,7 +117,7 @@ let lastAvailableVersion = null;
 let lastReleaseNotes = null;
 
 function setupAutoUpdater() {
-  loadGitHubToken();
+  configureAutoUpdaterFeed();
 
   autoUpdater.on('checking-for-update', () => {
     console.log('[AutoUpdater] Checking for updates...');
@@ -171,13 +154,9 @@ function setupAutoUpdater() {
 
       console.log(`[AutoUpdater] Downloading ${asset.name} (${asset.size} bytes) to ${targetFilePath}`);
 
-      const token = loadGitHubToken();
-      const downloadRes = await fetch(asset.url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/octet-stream',
-          'User-Agent': 'AvenorSystem-Updater',
-        },
+      const downloadUrl = getOptionalGitHubToken() ? asset.url : (asset.browser_download_url || asset.url);
+      const downloadRes = await fetch(downloadUrl, {
+        headers: getGitHubHeaders('application/octet-stream'),
       });
 
       if (!downloadRes.ok) {
@@ -294,7 +273,7 @@ function setupAutoUpdater() {
     }
   });
 
-  autoUpdater.on('update-not-available', (info) => {
+  autoUpdater.on('update-not-available', () => {
     console.log('[AutoUpdater] Update not available. Current version is up to date.');
     sendToRenderer('updater:status', {
       status: 'not-available',
@@ -355,18 +334,18 @@ function setupAutoUpdater() {
           })
           .then(async ({ response }) => {
             if (response === 0) {
-              startMacDmgDownload(lastAvailableVersion).catch(() => {});
+              startMacDmgDownload(lastAvailableVersion).catch(() => { });
             } else if (response === 1) {
               try {
                 const { asset } = await getReleaseAsset(lastAvailableVersion, process.arch);
                 if (asset) {
-                  const signedUrl = await getSignedDownloadUrl(asset);
-                  if (signedUrl) {
-                    shell.openExternal(signedUrl);
+                  const downloadUrl = await getReleaseDownloadUrl(asset);
+                  if (downloadUrl) {
+                    shell.openExternal(downloadUrl);
                   }
                 }
               } catch (openErr) {
-                console.error('[AutoUpdater] Failed to get signed download URL:', openErr);
+                console.error('[AutoUpdater] Failed to resolve download URL:', openErr);
               }
             }
           });
@@ -466,15 +445,15 @@ function setupAutoUpdater() {
       const targetVer = version || lastAvailableVersion;
       const { asset } = await getReleaseAsset(targetVer, process.arch);
       if (asset) {
-        const signedUrl = await getSignedDownloadUrl(asset);
-        if (signedUrl) {
-          console.log('[AutoUpdater] Opening pre-signed download URL in browser (no GitHub login required)');
-          shell.openExternal(signedUrl);
+        const downloadUrl = await getReleaseDownloadUrl(asset);
+        if (downloadUrl) {
+          console.log('[AutoUpdater] Opening release download URL in browser');
+          shell.openExternal(downloadUrl);
           return { status: 'ok' };
         }
       }
     } catch (err) {
-      console.error('[AutoUpdater] Failed to get signed download URL for browser:', err);
+      console.error('[AutoUpdater] Failed to resolve download URL for browser:', err);
     }
     // Fallback: start in-app download directly
     return startMacDmgDownload(version);

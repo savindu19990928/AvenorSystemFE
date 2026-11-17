@@ -1,0 +1,15 @@
+.git
+.gitignore
+node_modules
+dist
+dist-ssr
+release
+coverage
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+electron/github-token.txt

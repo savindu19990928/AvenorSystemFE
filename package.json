@@ -4,7 +4,16 @@
   "version": "1.4.3",
   "description": "Avenor Apparel Management System Desktop Application",
   "author": "Avenor Apparel (Pvt) Ltd",
+  "license": "MIT",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/savindu19990928/AvenorSystemFE.git"
+  },
+  "homepage": "https://github.com/savindu19990928/AvenorSystemFE#readme",
+  "bugs": {
+    "url": "https://github.com/savindu19990928/AvenorSystemFE/issues"
+  },
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
