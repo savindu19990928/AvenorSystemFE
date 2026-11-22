@@ -1,5 +1,13 @@
 export interface UpdaterStatus {
-  status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'mac-manual-update' | 'error';
+  status:
+    | 'checking'
+    | 'available'
+    | 'not-available'
+    | 'downloading'
+    | 'downloaded'
+    | 'installing'
+    | 'mac-manual-update'
+    | 'error';
   version?: string;
   releaseDate?: string;
   releaseNotes?: string | Array<{ version: string; note: string | null }>;
@@ -9,6 +17,8 @@ export interface UpdaterStatus {
   bytesPerSecond?: number;
   message?: string;
   isMac?: boolean;
+  canAutoInstall?: boolean;
+  needsElevation?: boolean;
   filePath?: string;
 }
 
@@ -16,9 +26,10 @@ export interface ElectronAPI {
   platform: string;
   isMac: boolean;
   getVersion: () => Promise<string>;
+  getUpdaterStatus?: () => Promise<UpdaterStatus | null>;
   checkForUpdates: () => Promise<{ status: string; message?: string; version?: string }>;
-  quitAndInstall: () => Promise<void>;
-  openMacDownload: (version?: string) => Promise<void>;
+  quitAndInstall: () => Promise<{ status?: string; message?: string } | void>;
+  openMacDownload: (version?: string) => Promise<{ status?: string; message?: string } | void>;
   startMacDownload?: (version?: string) => Promise<{ status: string; filePath?: string; version?: string }>;
   onUpdaterStatus: (callback: (status: UpdaterStatus) => void) => () => void;
   versions: {

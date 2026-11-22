@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('electron', {
   platform: process.platform,
   isMac: process.platform === 'darwin',
   getVersion: () => ipcRenderer.invoke('app:get-version'),
+  getUpdaterStatus: () => ipcRenderer.invoke('updater:get-status'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   quitAndInstall: () => ipcRenderer.invoke('updater:quit-and-install'),
   openMacDownload: (version) => ipcRenderer.invoke('updater:open-mac-download', version),

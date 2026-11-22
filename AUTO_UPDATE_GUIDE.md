@@ -48,11 +48,12 @@ Updates are served directly from **public GitHub Releases** (`savindu19990928/Av
 ### The Automatic Update Lifecycle:
 1. **Startup Check**:
    - 4 seconds after opening the app, it checks GitHub Releases for a newer version.
-   - On Windows, if a new version exists, it silently downloads the update in the background. On macOS (unsigned builds), it prompts to download the updated DMG directly.
+   - On both **Windows** and **macOS**, if a new version exists, it automatically downloads the update package in the background (matching your Mac's Apple Silicon `arm64` or Intel `x64` architecture, including Rosetta 2 detection), verifies the SHA-512 checksum, and stages the update.
 
 2. **In-App Progress & Alerts**:
-   - Shows a downloading indicator with progress percentage in the bottom corner.
-   - Once ready on Windows, an alert with a **"Restart & Update Now"** button appears (or applies automatically the next time the app restarts). On macOS, it prompts to open the downloaded `.dmg` installer.
+   - Shows a downloading indicator with progress percentage and transferred size in the bottom-right corner.
+   - Once verified and ready, an alert with a **"Restart & Update Now"** button appears on both Windows and macOS (or applies automatically the next time the app quits when the app folder is writable without administrator elevation).
+   - On macOS, clicking **"Restart & Update Now"** cleanly exits the app, strips quarantine flags, atomically replaces the `.app` bundle, and automatically relaunches the updated version (with an optional browser DMG download fallback if needed).
 
 3. **Background Periodic Checks**:
    - Every 4 hours while the app remains open.

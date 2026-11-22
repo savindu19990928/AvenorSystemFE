@@ -13,7 +13,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   useEffect(() => {
     if (window.electron?.getVersion) {
-      window.electron.getVersion().then((ver) => setAppVersion(ver)).catch(() => {});
+      window.electron.getVersion().then((ver) => setAppVersion(ver)).catch(() => { });
     }
   }, []);
 
@@ -27,10 +27,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       const res = await window.electron.checkForUpdates();
       if (res.status === 'dev-mode') {
         toast.info('Auto-update is disabled in development mode.');
-      } else if (res.status === 'ok') {
-        toast.info('Checking for updates...');
       } else if (res.status === 'not-available') {
         toast.success(res.message || 'Current version is up to date.');
+      } else if (res.status === 'downloaded') {
+        toast.success(res.message || 'Update is ready to install.');
+      } else if (res.status === 'downloading' || res.status === 'available') {
+        toast.info(res.message || 'New update found. Downloading in the background...');
+      } else if (res.status === 'ok') {
+        toast.info('Checking for updates...');
       } else if (res.status === 'error') {
         toast.error(`Check failed: ${res.message || 'Unable to check updates'}`);
       }
